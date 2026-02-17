@@ -1,0 +1,192 @@
+:root {
+    --app-color-1: #E8985E;
+    --app-color-2: #A93F55;
+    --app-color-3: #19323C;
+    --app-color-4: #F5F9E9;
+    --app-color-5: #5B85AA;
+
+    --color-text: var(--app-color-4);
+    --color-text-contrast: var(--app-color-3);
+    --color-primary: var(--app-color-2);
+    --color-primary-contrast: var(--app-color-5);
+    --color-accent: var(--app-color-1);
+
+    --font-xxl: 4rem;
+    --font-xl: 3.5rem;
+    --font-l: 2.1rem;
+    --font-m: 1.8rem;
+    --font-s: 1.2rem;
+
+    --space-xxs: 2px;
+    --space-xs: 4px;
+    --space-s: 8px;
+    --space-m: 12px;
+    --space-l: 16px;
+    --space-xl: 24px;
+    --space-xxl: 40px;
+
+    --border-radius: 8px;
+}
+
+* {
+    background: none;
+    border: none;
+    outline: none;
+    color: inherit;
+    font: inherit;
+
+    accent-color: var(--color-accent);
+
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+
+    width: 100vw;
+    min-height: 100vh;
+
+    color: var(--color-text);
+    background-color: var(--color-text-contrast);
+
+    font-family: sans-serif;
+    font-size: var(--font-s);
+}
+
+main {
+    margin-bottom: auto;
+}
+
+header {}
+
+footer {
+    width: auto;
+
+    display: flex;
+    flex-flow: row wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    >div {
+        display: flex;
+        flex-flow: column nowrap;
+    }
+}
+
+h1 {
+    font-size: var(--font-xxl);
+    font-weight: bold;
+
+    margin-top: var(--space-xl);
+    margin-bottom: var(--space-m);
+}
+
+h2 {
+    font-size: var(--font-xl);
+    font-weight: bold;
+
+    margin-top: var(--space-xl);
+    margin-bottom: var(--space-m);
+}
+
+h3 {
+    font-size: var(--font-l);
+    font-weight: bold;
+
+    margin-top: var(--space-l);
+    margin-bottom: var(--space-s);
+}
+
+h4 {
+    font-size: var(--font-m);
+    font-weight: bold;
+
+    margin-top: var(--space-l);
+    margin-bottom: var(--space-s);
+}
+
+p {
+    font-size: var(--font-s);
+    font-weight: normal;
+
+    margin-top: var(--space-l);
+    margin-bottom: var(--space-l);
+}
+
+hr {
+    margin-top: var(--space-xl);
+    margin-bottom: var(--space-xl);
+
+    border-top: 1px solid var(--color-text);
+}
+
+a {
+    cursor: pointer;
+
+    color: var(--color-primary);
+
+    font-weight: bold;
+
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+a:hover,
+a:active,
+a:focus-visible {
+    color: var(--color-text);
+    background-color: var(--color-primary);
+}
+
+button {
+    cursor: pointer;
+
+    color: var(--color-text);
+    background-color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+
+    border-radius: var(--border-radius);
+
+    font-weight: bold;
+
+    padding: var(--space-l) var(--space-xl);
+
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+button:hover,
+button:active,
+button:focus-visible {
+    color: var(--color-primary);
+    background-color: var(--color-text);
+}
+
+input[type="checkbox"] {
+    cursor: pointer;
+}
+
+label:has(input[type="checkbox"]) {
+    cursor: pointer;
+}
+
+.container {
+    margin-left: auto;
+    margin-right: auto;
+
+    width: 80ch;
+
+    @media only screen and (max-width: 1000px) {
+        width: 60ch;
+    }
+
+    @media only screen and (max-width: 800px) {
+        width: 40ch;
+    }
+
+    @media only screen and (max-width: 300px) {
+        width: 100%;
+    }
+}
