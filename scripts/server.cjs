@@ -45,6 +45,10 @@ wss.on("connection", (ws) => {
 
 console.log(`WebSocket listening on ws://${HOST}:${WS_PORT}`);
 
+/**
+ * @param {string} url_path 
+ * @returns {[string, boolean]}
+ */
 function resolvePath(url_path) {
     const clean = url_path.split("?")[0].split("#")[0];
     const normalized = path.normalize(clean);
@@ -100,7 +104,7 @@ server.listen(PORT, HOST, () => {
     console.log(`HTTP listening on http://${HOST}:${PORT}`);
 });
 
-processAll();
+processAll(true);
 
 const watcher = chokidar.watch(SRC_DIR, {
     ignoreInitial: true,
@@ -110,10 +114,9 @@ watcher.on("all", (event, file_path) => {
     console.log(event, file_path);
 
     try {
-        processFile(file_path);
+        processFile(file_path, true);
         broadcastReload();
     } catch (err) {
         console.error("error while processing:", err);
     }
 });
-

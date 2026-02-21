@@ -46,4 +46,4 @@ export class PageLayout extends BaseElement {
             </footer>
         `;
     }
-};
+}

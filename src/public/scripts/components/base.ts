@@ -51,13 +51,13 @@ export class BaseElement extends HTMLElement {
     async styles(): Promise<Template<"css"> | null> {
         return null;
     }
-};
+}
 
 export interface Template<T extends string> {
     type: T;
     strings: string[];
     values: unknown[];
-};
+}
 
 export function css(strings: TemplateStringsArray, ...values: unknown[]): Template<"css"> {
     return { type: "css", strings: [...strings], values };

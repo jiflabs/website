@@ -5,7 +5,11 @@ const ts = require("typescript");
 const SRC_DIR = path.resolve(__dirname, '../src');
 const DST_DIR = path.resolve(__dirname, '../dst');
 
-function processFile(src_path) {
+/**
+ * @param {string} src_path 
+ * @param {boolean?} debug 
+ */
+function processFile(src_path, debug) {
     const rel_path = path.relative(SRC_DIR, src_path);
     const dst_path = path.join(DST_DIR, rel_path);
 
@@ -25,24 +29,34 @@ function processFile(src_path) {
                     moduleResolution: ts.ModuleResolutionKind.Bundler,
                     esModuleInterop: false,
                     isolatedModules: true,
-                    sourceMap: true,
+                    sourceMap: debug ?? false,
                     strict: true,
                 },
+                fileName: src_path,
             });
 
-            fs.writeFileSync(dst_path.replace(/\.ts$/, '.js'), result.outputText, 'utf-8');
+            const js_dst_path = dst_path.replace(/\.ts$/, '.js');
+            fs.writeFileSync(js_dst_path, result.outputText, 'utf-8');
+
+            if (debug) {
+                fs.writeFileSync(`${js_dst_path}.map`, result.sourceMapText, 'utf-8');
+                fs.copyFileSync(src_path, dst_path);
+            }
         } else {
             fs.copyFileSync(src_path, dst_path);
         }
     }
 }
 
-function processAll() {
+/**
+ * @param {boolean?} debug
+ */
+function processAll(debug) {
     if (fs.existsSync(DST_DIR)) {
         fs.rmSync(DST_DIR, { recursive: true, force: true });
     }
 
-    processFile(SRC_DIR);
+    processFile(SRC_DIR, debug);
 }
 
 module.exports = { processFile, processAll };

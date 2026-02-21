@@ -1,3 +1,3 @@
 const { processAll } = require("./process.cjs");
 
-processAll();
+processAll(false);

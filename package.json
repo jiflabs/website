@@ -15,7 +15,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.cjs",
-    "start": "node scripts/server.cjs"
+    "dev": "node scripts/server.cjs"
   },
   "engines": {
     "node": "~25.6.1"
