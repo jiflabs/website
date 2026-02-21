@@ -11,10 +11,10 @@
     --color-primary-contrast: var(--app-color-5);
     --color-accent: var(--app-color-1);
 
-    --font-xxl: 4rem;
-    --font-xl: 3.5rem;
-    --font-l: 2.1rem;
-    --font-m: 1.8rem;
+    --font-xxl: 3rem;
+    --font-xl: 2.4rem;
+    --font-l: 2.0rem;
+    --font-m: 1.6rem;
     --font-s: 1.2rem;
 
     --space-xxs: 2px;
@@ -47,9 +47,6 @@ body {
     align-items: stretch;
     justify-content: flex-start;
 
-    width: 100vw;
-    min-height: 100vh;
-
     color: var(--color-text);
     background-color: var(--color-text-contrast);
 
@@ -62,20 +59,50 @@ main {
 }
 
 header {
-    background-color: var(--color-accent);
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-m);
+    align-items: center;
+    justify-content: space-between;
+
+    background-color: var(--color-text-contrast);
+    padding: var(--space-m) var(--space-s);
+
+    >nav>ul {
+        display: flex;
+        flex-flow: row nowrap;
+        gap: var(--space-m);
+        align-items: center;
+        justify-content: flex-start;
+
+        list-style: none;
+    }
 }
 
 footer {
-    width: auto;
-
     display: flex;
     flex-flow: row wrap;
     align-items: flex-start;
     justify-content: space-between;
 
-    >div {
+    background-color: var(--color-text-contrast);
+    padding: var(--space-m) var(--space-s);
+
+    margin-top: var(--space-xxl);
+
+    >nav>ul {
         display: flex;
-        flex-flow: column nowrap;
+        flex-flow: row nowrap;
+        gap: var(--space-s);
+        align-items: center;
+        justify-content: flex-start;
+
+        list-style: none;
     }
 }
 
@@ -182,17 +209,20 @@ label:has(input[type="checkbox"]) {
     margin-left: auto;
     margin-right: auto;
 
-    width: 80ch;
+    width: min(80ch, 100%);
 
     @media only screen and (max-width: 1000px) {
-        width: 60ch;
+        width: min(60ch, 100%);
     }
 
     @media only screen and (max-width: 800px) {
-        width: 40ch;
+        width: min(40ch, 100%);
     }
 
     @media only screen and (max-width: 300px) {
+        padding-left: var(--space-m);
+        padding-right: var(--space-m);
+
         width: 100%;
     }
 }
