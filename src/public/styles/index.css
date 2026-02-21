@@ -61,7 +61,9 @@ main {
     margin-bottom: auto;
 }
 
-header {}
+header {
+    background-color: var(--color-accent);
+}
 
 footer {
     width: auto;
@@ -125,9 +127,11 @@ hr {
 }
 
 a {
+    display: inline-block;
     cursor: pointer;
 
     color: var(--color-primary);
+    background-color: transparent;
 
     font-weight: bold;
 
@@ -142,10 +146,12 @@ a:focus-visible {
 }
 
 button {
+    display: inline-block;
     cursor: pointer;
 
     color: var(--color-text);
     background-color: var(--color-primary);
+
     border: 2px solid var(--color-primary);
 
     border-radius: var(--border-radius);
@@ -189,4 +195,9 @@ label:has(input[type="checkbox"]) {
     @media only screen and (max-width: 300px) {
         width: 100%;
     }
+}
+
+a.icon {
+    width: 50px;
+    height: 50px;
 }
