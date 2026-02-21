@@ -10,25 +10,6 @@ export class InlineSVGElement extends BaseElement {
         super();
     }
 
-    override async styles() {
-        return css`
-            :host {
-                display: inline-block;
-
-                width: auto;
-                height: auto;
-
-                max-width: 100%;
-                max-height: 100%;
-
-                >svg {
-                    width: 100%;
-                    height: 100%;
-                }
-            }
-        `;
-    }
-
     override async template() {
         if (!this.src.length) {
             return null;
@@ -47,6 +28,25 @@ export class InlineSVGElement extends BaseElement {
 
         const text = await response.text();
         return html`${text}`;
+    }
+
+    override async styles() {
+        return css`
+            :host {
+                display: inline-block;
+
+                width: auto;
+                height: auto;
+
+                max-width: 100%;
+                max-height: 100%;
+
+                >svg {
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+        `;
     }
 
     override attrchanged(name: string, oldValue: string, newValue: string): void {

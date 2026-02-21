@@ -51,11 +51,28 @@ function resolvePath(url_path) {
 
     if (normalized.startsWith("/blob/")) {
         const rel = normalized.slice("/blob/".length);
-        return path.join(PUBLIC_DIR, rel);
+        const abs = path.join(PUBLIC_DIR, rel);
+        return [abs, true];
     }
 
     const rel = normalized.replace(/^\/+/, "");
-    return path.join(PAGES_DIR, rel);
+    const abs = path.join(PAGES_DIR, rel);
+
+    if (fs.existsSync(abs)) {
+        return [abs, true];
+    }
+
+    const file_abs = `${abs}.html`;
+    if (fs.existsSync(file_abs)) {
+        return [file_abs, true];
+    }
+
+    const dir_abs = `${abs}/index.html`;
+    if (fs.existsSync(dir_abs)) {
+        return [dir_abs, true];
+    }
+
+    return [path.join(PAGES_DIR, "not-found.html"), false];
 }
 
 const server = http.createServer((req, res) => {
@@ -65,7 +82,7 @@ const server = http.createServer((req, res) => {
         request_path = "/index.html";
     }
 
-    const file_path = resolvePath(request_path);
+    const [file_path, ok] = resolvePath(request_path);
 
     fs.readFile(file_path, (err, data) => {
         if (err) {
@@ -74,7 +91,7 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        res.writeHead(200, { "content-type": mime.lookup(file_path) || "application/octet-stream" });
+        res.writeHead(ok ? 200 : 404, { "content-type": mime.lookup(file_path) || "application/octet-stream" });
         res.end(data);
     });
 });

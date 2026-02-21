@@ -58,6 +58,14 @@ main {
     margin-bottom: auto;
 }
 
+main.not-found {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+}
+
 header {
     position: sticky;
     top: 0;
@@ -195,6 +203,14 @@ button:active,
 button:focus-visible {
     color: var(--color-primary);
     background-color: var(--color-text);
+}
+
+label:hover,
+label:active,
+label:focus-visible,
+label:focus-within {
+    filter: drop-shadow(0 0 10px var(--color-accent));
+    background: none;
 }
 
 input[type="checkbox"] {

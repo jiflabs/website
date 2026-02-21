@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/xml+svg" href="/blob/images/favicon.svg">
+    <link rel="stylesheet" type="text/css" media="screen" href="/blob/styles/index.css">
+    <title>%data.title% | %global.title%</title>
+</head>
+
+<body>
+    <a href="#main" aria-label="Jump to content"></a>
+
+    <header class="container">
+        <a href="/" title="Go to home page" class="icon">
+            <inline-svg src="/blob/images/favicon.svg"></inline-svg>
+        </a>
+
+        <nav>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/store">Store</a></li>
+                <li><a href="/blog">Blog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main id="main" class="container">
+
+        %data.content%
+
+    </main>
+
+    <footer class="container">
+        <span>
+            &copy; 2026 jiflabs.de
+        </span>
+
+        <nav>
+            <ul>
+                <li><a href="/imprint">Imprint</a></li>
+                <li><a href="/privacy">Privacy</a></li>
+            </ul>
+        </nav>
+    </footer>
+
+    <script src="/blob/scripts/index.js" type="module"></script>
+</body>
+
+</html>
