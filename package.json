@@ -14,8 +14,9 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.cjs",
-    "dev": "node scripts/server.cjs"
+    "build": "node scripts/build.js src_dir=./src dst_dir=./dst",
+    "start": "node scripts/server.js mode=production dst_dir=./dst",
+    "dev": "node scripts/server.js mode=development src_dir=./src dst_dir=./dst"
   },
   "engines": {
     "node": "~25.6.1"

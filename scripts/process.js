@@ -1,23 +1,36 @@
-const fs = require("node:fs");
-const path = require("node:path");
-const ts = require("typescript");
+import fs from "node:fs";
+import path from "node:path";
+import ts from "typescript";
 
-const SRC_DIR = path.resolve(__dirname, '../src');
-const DST_DIR = path.resolve(__dirname, '../dst');
+function createDefineDebugTransformer(debug) {
+    return (context) => {
+        const visitor = (node) => {
+            if (ts.isIdentifier(node) && node.text === "__DEBUG__") {
+                return debug ? ts.factory.createTrue() : ts.factory.createFalse();
+            }
+            return ts.visitEachChild(node, visitor, context);
+        };
+
+        return (node) => ts.visitNode(node, visitor);
+    };
+}
 
 /**
+ * @param {string} src_dir
+ * @param {string} dst_dir
  * @param {string} src_path 
  * @param {boolean?} debug 
  */
-function processFile(src_path, debug) {
-    const rel_path = path.relative(SRC_DIR, src_path);
-    const dst_path = path.join(DST_DIR, rel_path);
+export function processFile(src_dir, dst_dir, src_path, debug) {
+
+    const rel_path = path.relative(src_dir, src_path);
+    const dst_path = path.join(dst_dir, rel_path);
 
     const src = fs.statSync(src_path);
 
     if (src.isDirectory()) {
         fs.mkdirSync(dst_path, { recursive: true });
-        fs.readdirSync(src_path).forEach((file) => processFile(path.join(src_path, file)));
+        fs.readdirSync(src_path).forEach((file) => processFile(src_dir, dst_dir, path.join(src_path, file), debug));
     } else if (src.isFile()) {
         if (src_path.endsWith('.ts')) {
             const input = fs.readFileSync(src_path, 'utf-8');
@@ -31,6 +44,9 @@ function processFile(src_path, debug) {
                     isolatedModules: true,
                     sourceMap: debug ?? false,
                     strict: true,
+                },
+                transformers: {
+                    before: [createDefineDebugTransformer(debug)],
                 },
                 fileName: src_path,
             });
@@ -49,14 +65,14 @@ function processFile(src_path, debug) {
 }
 
 /**
+ * @param {string} src_dir
+ * @param {string} dst_dir
  * @param {boolean?} debug
  */
-function processAll(debug) {
-    if (fs.existsSync(DST_DIR)) {
-        fs.rmSync(DST_DIR, { recursive: true, force: true });
+export function processAll(src_dir, dst_dir, debug) {
+    if (fs.existsSync(dst_dir)) {
+        fs.rmSync(dst_dir, { recursive: true, force: true });
     }
 
-    processFile(SRC_DIR, debug);
+    processFile(src_dir, dst_dir, src_dir, debug);
 }
-
-module.exports = { processFile, processAll };

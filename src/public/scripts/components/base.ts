@@ -68,13 +68,13 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Templ
 }
 
 export function render(template: Template<"html"> | null, styles: Template<"css"> | null, container: ShadowRoot) {
-    if (template) {
+    if (template !== null) {
         container.innerHTML = template.strings.reduce((acc, str, idx) => acc + (template.values[idx] ?? "") + str, "");
     } else {
         container.innerHTML = "";
     }
 
-    if (styles) {
+    if (styles !== null) {
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(styles.strings.reduce((acc, str, idx) => acc + (styles.values[idx] ?? "") + str, ""));
 
