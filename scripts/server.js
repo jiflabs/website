@@ -13,13 +13,21 @@ import { parse } from "./param.js";
 import { processAll, processFile } from "./process.js";
 
 const BLOB_PREFIX = `${path.sep}blob${path.sep}`;
+const CONTENT_PREFIX = `${path.sep}content${path.sep}`;
 
 /**
- * @typedef {{ public_dir: string, pages_dir: string }} ResolveConfig
+ * @typedef {{ public_dir: string, pages_dir: string, content_dir: string }} ResolveConfig
  * @typedef {{ hostname: string, port: string, cache?: string } & ResolveConfig} ServerConfig
  * @typedef {ServerConfig} ProductionConfig
  * @typedef {{ src_dir: string, dst_dir: string, ws_port: string } & ServerConfig} DevelopmentConfig
  */
+
+function isRealFile(pathname) {
+    if (!fs.existsSync(pathname)) {
+        return false;
+    }
+    return fs.statSync(pathname).isFile();
+}
 
 /**
  * @param {ResolveConfig} config
@@ -34,47 +42,48 @@ function resolvePath(config, pathname) {
         const rel = normalized.slice(BLOB_PREFIX.length);
         const abs = path.join(config.public_dir, rel);
 
-        if (fs.existsSync(abs)) {
-            const stat = fs.statSync(abs);
-            if (stat.isFile()) {
-                return [abs, true];
-            }
+        if (isRealFile(abs)) {
+            return [abs, true];
         }
 
         return [null, false];
     }
 
-    const ext = normalized.lastIndexOf(".");
-    const abs = path.join(config.pages_dir, normalized.slice(0, ext < 0 ? undefined : ext));
-    if (fs.existsSync(abs)) {
-        const stat = fs.statSync(abs);
-        if (stat.isFile()) {
+    const ext_index = normalized.lastIndexOf(".");
+    const rel_no_ext = normalized.slice(0, ext_index < 0 ? undefined : ext_index);
+
+    if (rel_no_ext.startsWith(CONTENT_PREFIX)) {
+        const rel = rel_no_ext.slice(CONTENT_PREFIX.length);
+        const abs = path.join(config.content_dir, rel);
+
+        if (isRealFile(abs)) {
             return [abs, true];
         }
-    }
 
-    const html_path = path.join(path.dirname(abs), `${path.basename(abs)}.html`);
-    if (fs.existsSync(html_path)) {
-        const stat = fs.statSync(html_path);
-        if (stat.isFile()) {
-            return [html_path, true];
+        const html_abs = `${abs}.html`;
+        if (isRealFile(html_abs)) {
+            return [html_abs, true];
         }
     }
 
-    const index_path = path.join(abs, "index.html");
-    if (fs.existsSync(index_path)) {
-        const stat = fs.statSync(index_path);
-        if (stat.isFile()) {
-            return [index_path, true];
-        }
+    const abs = path.join(config.pages_dir, rel_no_ext);
+    if (isRealFile(abs)) {
+        return [abs, true];
     }
 
-    const not_found_path = path.join(config.pages_dir, "not-found.html");
-    if (fs.existsSync(not_found_path)) {
-        const stat = fs.statSync(not_found_path);
-        if (stat.isFile()) {
-            return [not_found_path, false];
-        }
+    const html_abs = `${abs}.html`;
+    if (isRealFile(html_abs)) {
+        return [html_abs, true];
+    }
+
+    const index_abs = path.join(abs, "index.html");
+    if (isRealFile(index_abs)) {
+        return [index_abs, true];
+    }
+
+    const not_found_abs = path.join(config.pages_dir, "not-found.html");
+    if (isRealFile(not_found_abs)) {
+        return [not_found_abs, false];
     }
 
     return [null, false];
@@ -194,8 +203,9 @@ function main(args) {
         ws_port: ["string", false],
     });
 
-    const pages_dir = `${dst_dir}/pages`;
     const public_dir = `${dst_dir}/public`;
+    const pages_dir = `${dst_dir}/pages`;
+    const content_dir = `${dst_dir}/content`;
 
     switch (mode) {
         case "development":
@@ -210,6 +220,7 @@ function main(args) {
                 ws_port: ws_port ?? "8090",
                 public_dir,
                 pages_dir,
+                content_dir,
                 cache: `public, max-age=${5 * 60}, immutable`,
             });
             break;
@@ -220,6 +231,7 @@ function main(args) {
                 port: port ?? "8080",
                 public_dir,
                 pages_dir,
+                content_dir,
                 cache: `public, max-age=${7 * 24 * 60 * 60}, immutable`,
             });
             break;

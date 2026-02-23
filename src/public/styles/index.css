@@ -1,3 +1,5 @@
+@import url("./monokai.min.css");
+
 :root {
     --app-color-1: #e8985e;
     --app-color-2: #a93f55;
@@ -11,11 +13,13 @@
     --color-primary-contrast: var(--app-color-5);
     --color-accent: var(--app-color-1);
 
+    --color-surface: #5a5a5a;
+
     --font-xxl: 3rem;
     --font-xl: 2.4rem;
     --font-l: 2rem;
     --font-m: 1.6rem;
-    --font-s: 1.2rem;
+    --font-s: 1.1rem;
 
     --space-xxs: 2px;
     --space-xs: 4px;
@@ -152,6 +156,25 @@ p {
 
     margin-top: var(--space-l);
     margin-bottom: var(--space-l);
+}
+
+em {
+    font-style: italic;
+}
+
+strong {
+    font-weight: bold;
+}
+
+pre > code {
+    border-radius: var(--border-radius);
+
+    font-family: monospace;
+    font-size: var(--font-s);
+}
+
+ul {
+    padding-left: var(--space-xl);
 }
 
 hr {
