@@ -6,6 +6,14 @@ import path from "node:path";
 import ts from "typescript";
 import yaml from "yaml";
 
+/**
+ * @typedef {{ srcDir: string, dstDir: string, debug: boolean }} Config
+ */
+
+/**
+ * @param {boolean} debug
+ * @returns {ts.CustomTransformerFactory}
+ */
 function createDefineDebugTransformer(debug) {
     return (context) => {
         const visitor = (node) => {
@@ -20,13 +28,13 @@ function createDefineDebugTransformer(debug) {
 }
 
 /**
- * @param {string} template_path
+ * @param {string} templatePath
  * @param {Record<string, unknown>} global
  * @param {Record<string, unknown>} data
  * @param {string} content
  */
-function instantiate(template_path, global, data, content) {
-    let template = fs.readFileSync(template_path, "utf-8");
+function instantiate(templatePath, global, data, content) {
+    let template = fs.readFileSync(templatePath, "utf-8");
 
     template = template.replaceAll("%content%", content);
 
@@ -42,25 +50,23 @@ function instantiate(template_path, global, data, content) {
 }
 
 /**
- * @param {string} src_dir
- * @param {string} dst_dir
- * @param {string} src_path
- * @param {boolean?} debug
+ * @param {Config} config
+ * @param {string} srcPath
  */
-export function processFile(src_dir, dst_dir, src_path, debug) {
+export function processFile(config, srcPath) {
     const global = (() => {
-        const input = fs.readFileSync(path.join(src_dir, "config.yaml"), "utf-8");
+        const input = fs.readFileSync(path.join(config.srcDir, "config.yaml"), "utf-8");
         return yaml.parse(input);
     })();
 
-    const rel_path = path.relative(src_dir, src_path);
-    const dst_path = path.join(dst_dir, rel_path);
+    const relPath = path.relative(config.srcDir, srcPath);
+    const dstPath = path.join(config.dstDir, relPath);
 
-    const src = fs.statSync(src_path);
+    const src = fs.statSync(srcPath);
 
     if (src.isDirectory()) {
-        fs.mkdirSync(dst_path, { recursive: true });
-        fs.readdirSync(src_path).forEach((file) => processFile(src_dir, dst_dir, path.join(src_path, file), debug));
+        fs.mkdirSync(dstPath, { recursive: true });
+        fs.readdirSync(srcPath).forEach((file) => processFile(config, path.join(srcPath, file)));
         return;
     }
 
@@ -68,9 +74,9 @@ export function processFile(src_dir, dst_dir, src_path, debug) {
         throw new Error("Path must either point to a file or directory.");
     }
 
-    switch (path.extname(src_path)) {
+    switch (path.extname(srcPath)) {
         case ".ts": {
-            const input = fs.readFileSync(src_path, "utf-8");
+            const input = fs.readFileSync(srcPath, "utf-8");
             const result = ts.transpileModule(input, {
                 compilerOptions: {
                     target: ts.ScriptTarget.ES2020,
@@ -79,27 +85,27 @@ export function processFile(src_dir, dst_dir, src_path, debug) {
                     moduleResolution: ts.ModuleResolutionKind.Bundler,
                     esModuleInterop: false,
                     isolatedModules: true,
-                    sourceMap: debug ?? false,
+                    sourceMap: config.debug ?? false,
                     strict: true,
                 },
                 transformers: {
-                    before: [createDefineDebugTransformer(debug)],
+                    before: [createDefineDebugTransformer(config.debug)],
                 },
-                fileName: src_path,
+                fileName: srcPath,
             });
 
-            const output_path = dst_path.replace(/\.ts$/, ".js");
-            fs.writeFileSync(output_path, result.outputText, "utf-8");
+            const outputPath = dstPath.replace(/\.ts$/, ".js");
+            fs.writeFileSync(outputPath, result.outputText, "utf-8");
 
-            if (debug) {
-                fs.writeFileSync(`${output_path}.map`, result.sourceMapText, "utf-8");
-                fs.copyFileSync(src_path, dst_path);
+            if (config.debug) {
+                fs.writeFileSync(`${outputPath}.map`, result.sourceMapText, "utf-8");
+                fs.copyFileSync(srcPath, dstPath);
             }
             break;
         }
 
         case ".md": {
-            const input = fs.readFileSync(src_path, "utf-8");
+            const input = fs.readFileSync(srcPath, "utf-8");
 
             const { data, content } = matter(input);
 
@@ -117,29 +123,27 @@ export function processFile(src_dir, dst_dir, src_path, debug) {
 
             const template = data.template;
 
-            const template_path = path.join(src_dir, "templates", `${template}.html`);
-            const output = instantiate(template_path, global, data, html);
+            const templatePath = path.join(config.srcDir, "templates", `${template}.html`);
+            const output = instantiate(templatePath, global, data, html);
 
-            const output_path = dst_path.replace(/\.md$/, ".html");
-            fs.writeFileSync(output_path, output, "utf-8");
+            const outputPath = dstPath.replace(/\.md$/, ".html");
+            fs.writeFileSync(outputPath, output, "utf-8");
             break;
         }
 
         default:
-            fs.copyFileSync(src_path, dst_path);
+            fs.copyFileSync(srcPath, dstPath);
             break;
     }
 }
 
 /**
- * @param {string} src_dir
- * @param {string} dst_dir
- * @param {boolean?} debug
+ * @param {Config} config
  */
-export function processAll(src_dir, dst_dir, debug) {
-    if (fs.existsSync(dst_dir)) {
-        fs.rmSync(dst_dir, { recursive: true, force: true });
+export function processAll(config) {
+    if (fs.existsSync(config.dstDir)) {
+        fs.rmSync(config.dstDir, { recursive: true, force: true });
     }
 
-    processFile(src_dir, dst_dir, src_dir, debug);
+    processFile(config, config.srcDir);
 }

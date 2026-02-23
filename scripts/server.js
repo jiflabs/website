@@ -16,10 +16,10 @@ const BLOB_PREFIX = `${path.sep}blob${path.sep}`;
 const CONTENT_PREFIX = `${path.sep}content${path.sep}`;
 
 /**
- * @typedef {{ public_dir: string, pages_dir: string, content_dir: string }} ResolveConfig
+ * @typedef {{ publicDir: string, pagesDir: string, contentDir: string }} ResolveConfig
  * @typedef {{ hostname: string, port: string, cache?: string } & ResolveConfig} ServerConfig
  * @typedef {ServerConfig} ProductionConfig
- * @typedef {{ src_dir: string, dst_dir: string, ws_port: string } & ServerConfig} DevelopmentConfig
+ * @typedef {{ srcDir: string, dstDir: string, wsPort: string } & ServerConfig} DevelopmentConfig
  */
 
 function isRealFile(pathname) {
@@ -40,7 +40,7 @@ function resolvePath(config, pathname) {
 
     if (normalized.startsWith(BLOB_PREFIX)) {
         const rel = normalized.slice(BLOB_PREFIX.length);
-        const abs = path.join(config.public_dir, rel);
+        const abs = path.join(config.publicDir, rel);
 
         if (isRealFile(abs)) {
             return [abs, true];
@@ -49,41 +49,41 @@ function resolvePath(config, pathname) {
         return [null, false];
     }
 
-    const ext_index = normalized.lastIndexOf(".");
-    const rel_no_ext = normalized.slice(0, ext_index < 0 ? undefined : ext_index);
+    const extIndex = normalized.lastIndexOf(".");
+    const relNoExt = normalized.slice(0, extIndex < 0 ? undefined : extIndex);
 
-    if (rel_no_ext.startsWith(CONTENT_PREFIX)) {
-        const rel = rel_no_ext.slice(CONTENT_PREFIX.length);
-        const abs = path.join(config.content_dir, rel);
+    if (relNoExt.startsWith(CONTENT_PREFIX)) {
+        const rel = relNoExt.slice(CONTENT_PREFIX.length);
+        const abs = path.join(config.contentDir, rel);
 
         if (isRealFile(abs)) {
             return [abs, true];
         }
 
-        const html_abs = `${abs}.html`;
-        if (isRealFile(html_abs)) {
-            return [html_abs, true];
+        const absHtml = `${abs}.html`;
+        if (isRealFile(absHtml)) {
+            return [absHtml, true];
         }
     }
 
-    const abs = path.join(config.pages_dir, rel_no_ext);
+    const abs = path.join(config.pagesDir, relNoExt);
     if (isRealFile(abs)) {
         return [abs, true];
     }
 
-    const html_abs = `${abs}.html`;
-    if (isRealFile(html_abs)) {
-        return [html_abs, true];
+    const absHtml = `${abs}.html`;
+    if (isRealFile(absHtml)) {
+        return [absHtml, true];
     }
 
-    const index_abs = path.join(abs, "index.html");
-    if (isRealFile(index_abs)) {
-        return [index_abs, true];
+    const absIndex = path.join(abs, "index.html");
+    if (isRealFile(absIndex)) {
+        return [absIndex, true];
     }
 
-    const not_found_abs = path.join(config.pages_dir, "not-found.html");
-    if (isRealFile(not_found_abs)) {
-        return [not_found_abs, false];
+    const absNotFound = path.join(config.pagesDir, "not-found.html");
+    if (isRealFile(absNotFound)) {
+        return [absNotFound, false];
     }
 
     return [null, false];
@@ -96,15 +96,15 @@ function runServer(config) {
     const server = http.createServer((req, res) => {
         console.log("%s %s", req.method, req.url);
 
-        const [file_path, ok] = resolvePath(config, req.url);
+        const [filename, ok] = resolvePath(config, req.url);
 
-        if (!file_path) {
+        if (!filename) {
             res.writeHead(404);
             res.end("Not found");
             return;
         }
 
-        fs.readFile(file_path, (err, data) => {
+        fs.readFile(filename, (err, data) => {
             if (err) {
                 res.writeHead(404);
                 res.end("Not found");
@@ -112,7 +112,7 @@ function runServer(config) {
             }
 
             res.writeHead(ok ? 200 : 404, {
-                "content-type": mime.lookup(file_path) || "application/octet-stream",
+                "content-type": mime.lookup(filename) || "application/octet-stream",
                 "cache-control": config.cache,
             });
             res.end(data);
@@ -133,9 +133,9 @@ function development(config) {
      */
     const clients = new Set();
 
-    const ws_server = new WebSocketServer({
+    const wsServer = new WebSocketServer({
         host: config.hostname,
-        port: config.ws_port,
+        port: config.wsPort,
     });
 
     function broadcastReload() {
@@ -146,7 +146,7 @@ function development(config) {
         }
     }
 
-    ws_server.on("connection", (ws) => {
+    wsServer.on("connection", (ws) => {
         clients.add(ws);
 
         ws.on("message", (msg) => {
@@ -160,11 +160,11 @@ function development(config) {
         });
     });
 
-    console.log(`WebSocket listening on ws://${config.hostname}:${config.ws_port}`);
+    console.log(`WebSocket listening on ws://${config.hostname}:${config.wsPort}`);
 
-    processAll(config.src_dir, config.dst_dir, true);
+    processAll({ srcDir: config.srcDir, dstDir: config.dstDir, debug: true });
 
-    const watcher = chokidar.watch(config.src_dir, {
+    const watcher = chokidar.watch(config.srcDir, {
         ignoreInitial: true,
     });
 
@@ -176,7 +176,7 @@ function development(config) {
         }
 
         try {
-            processFile(config.src_dir, config.dst_dir, file_path, true);
+            processFile({ srcDir: config.srcDir, dstDir: config.dstDir, debug: true }, file_path);
             broadcastReload();
         } catch (err) {
             console.error("Error while processing:", err);
@@ -194,33 +194,40 @@ function production(config) {
 }
 
 function main(args) {
-    const { mode, src_dir, dst_dir, hostname, port, ws_port } = parse(args, {
-        mode: ["string", true],
-        src_dir: ["string", false],
-        dst_dir: ["string", true],
-        hostname: ["string", false],
-        port: ["string", false],
-        ws_port: ["string", false],
+    const {
+        "--mode": mode,
+        "--src-dir": srcDir,
+        "--dst-dir": dstDir,
+        "--hostname": hostname,
+        "--port": port,
+        "--ws-port": wsPort,
+    } = parse(args, {
+        "--mode": ["string", true],
+        "--src-dir": ["string", false],
+        "--dst-dir": ["string", true],
+        "--hostname": ["string", false],
+        "--port": ["string", false],
+        "--ws-port": ["string", false],
     });
 
-    const public_dir = `${dst_dir}/public`;
-    const pages_dir = `${dst_dir}/pages`;
-    const content_dir = `${dst_dir}/content`;
+    const publicDir = `${dstDir}/public`;
+    const pagesDir = `${dstDir}/pages`;
+    const contentDir = `${dstDir}/content`;
 
     switch (mode) {
         case "development":
-            if (typeof src_dir === "undefined") {
+            if (typeof srcDir === "undefined") {
                 throw new Error(`Missing required param "src_dir".`);
             }
             development({
-                src_dir,
-                dst_dir,
+                srcDir: srcDir,
+                dstDir: dstDir,
                 hostname: hostname ?? "0.0.0.0",
                 port: port ?? "8080",
-                ws_port: ws_port ?? "8090",
-                public_dir,
-                pages_dir,
-                content_dir,
+                wsPort: wsPort ?? "8090",
+                publicDir,
+                pagesDir,
+                contentDir,
                 cache: `public, max-age=${5 * 60}, immutable`,
             });
             break;
@@ -229,9 +236,9 @@ function main(args) {
             production({
                 hostname: hostname ?? "0.0.0.0",
                 port: port ?? "8080",
-                public_dir,
-                pages_dir,
-                content_dir,
+                publicDir,
+                pagesDir,
+                contentDir,
                 cache: `public, max-age=${7 * 24 * 60 * 60}, immutable`,
             });
             break;

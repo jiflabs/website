@@ -14,9 +14,9 @@
     "author": "",
     "type": "module",
     "scripts": {
-        "build": "node scripts/build.js src_dir=./src dst_dir=./dst",
-        "start": "node scripts/server.js mode=production dst_dir=./dst",
-        "dev": "node scripts/server.js mode=development src_dir=./src dst_dir=./dst",
+        "build": "node scripts/build.js --src-dir=src --dst-dir=dst",
+        "start": "node scripts/server.js --mode=production --dst-dir=dst",
+        "dev": "node scripts/server.js --mode=development --src-dir=src --dst-dir=dst",
         "format": "npx prettier . --write"
     },
     "engines": {

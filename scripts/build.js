@@ -4,12 +4,12 @@ import { parse } from "./param.js";
 import { processAll } from "./process.js";
 
 function main(args) {
-    const { src_dir, dst_dir } = parse(args, {
-        src_dir: ["string", true],
-        dst_dir: ["string", true],
+    const { "--src-dir": srcDir, "--dst-dir": dstDir } = parse(args, {
+        "--src-dir": ["string", true],
+        "--dst-dir": ["string", true],
     });
 
-    processAll(src_dir, dst_dir, false);
+    processAll({ srcDir, dstDir, debug: false });
 }
 
 main(process.argv.slice(2));
