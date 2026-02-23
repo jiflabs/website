@@ -16,7 +16,7 @@ const BLOB_PREFIX = `${path.sep}blob${path.sep}`;
 
 /**
  * @typedef {{ public_dir: string, pages_dir: string }} ResolveConfig
- * @typedef {{ hostname: string, port: string } & ResolveConfig} ServerConfig
+ * @typedef {{ hostname: string, port: string, cache?: string } & ResolveConfig} ServerConfig
  * @typedef {ServerConfig} ProductionConfig
  * @typedef {{ src_dir: string, dst_dir: string, ws_port: string } & ServerConfig} DevelopmentConfig
  */
@@ -104,6 +104,7 @@ function runServer(config) {
 
             res.writeHead(ok ? 200 : 404, {
                 "content-type": mime.lookup(file_path) || "application/octet-stream",
+                "cache-control": config.cache,
             });
             res.end(data);
         });
@@ -118,6 +119,9 @@ function runServer(config) {
  * @param {DevelopmentConfig} config
  */
 function development(config) {
+    /**
+     * @type {Set<WebSocket>}
+     */
     const clients = new Set();
 
     const ws_server = new WebSocketServer({
@@ -206,6 +210,7 @@ function main(args) {
                 ws_port: ws_port ?? "8090",
                 public_dir,
                 pages_dir,
+                cache: `public, max-age=${5 * 60}, immutable`,
             });
             break;
 
@@ -215,6 +220,7 @@ function main(args) {
                 port: port ?? "8080",
                 public_dir,
                 pages_dir,
+                cache: `public, max-age=${7 * 24 * 60 * 60}, immutable`,
             });
             break;
     }

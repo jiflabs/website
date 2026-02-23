@@ -10,5 +10,9 @@ customElements.define("page-layout", PageLayout);
 
 if (__DEBUG__) {
     const ws = new WebSocket(`ws://${location.hostname}:8090/live`);
-    ws.onmessage = () => location.reload();
+    ws.onmessage = (event) => {
+        if (event.data === "reload") {
+            location.reload();
+        }
+    };
 }

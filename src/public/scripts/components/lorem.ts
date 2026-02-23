@@ -10,7 +10,9 @@ export class LoremIpsumElement extends BaseElement {
     }
 
     override async template(): Promise<Template<"html"> | null> {
-        const response = await fetch(`https://lorem-api.com/api/lorem?paragraphs=${this.count}`);
+        const response = await fetch(`https://lorem-api.com/api/lorem?paragraphs=${this.count}`, {
+            cache: "force-cache",
+        });
 
         const text: string = await response.text();
 
