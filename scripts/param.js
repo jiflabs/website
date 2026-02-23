@@ -4,10 +4,8 @@
  * @returns {{ [key: string]: string | boolean | undefined }}
  */
 export function parse(argv, template) {
-
     const map = {};
     for (const arg of argv) {
-
         const split = arg.indexOf("=");
         if (split < 0) {
             if (!(arg in template)) {

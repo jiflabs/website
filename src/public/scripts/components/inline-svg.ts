@@ -1,7 +1,6 @@
 import { BaseElement, css, html } from "./base.js";
 
 export class InlineSVGElement extends BaseElement {
-
     static readonly observedAttributes = ["src"];
 
     private src: string = "";
@@ -18,7 +17,7 @@ export class InlineSVGElement extends BaseElement {
         const response = await fetch(this.src, {
             method: "GET",
             headers: {
-                "accept": "image/svg+xml",
+                accept: "image/svg+xml",
             },
         });
 
@@ -41,7 +40,7 @@ export class InlineSVGElement extends BaseElement {
                 max-width: 100%;
                 max-height: 100%;
 
-                >svg {
+                > svg {
                     width: 100%;
                     height: 100%;
                 }
@@ -49,7 +48,11 @@ export class InlineSVGElement extends BaseElement {
         `;
     }
 
-    override attrchanged(name: string, oldValue: string, newValue: string): void {
+    override attrchanged(
+        name: string,
+        oldValue: string,
+        newValue: string,
+    ): void {
         switch (name) {
             case "src":
                 this.src = newValue;

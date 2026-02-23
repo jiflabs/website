@@ -1,0 +1,19 @@
+{
+    "arrowParens": "always",
+    "bracketSameLine": false,
+    "bracketSpacing": true,
+    "checkIgnorePragma": false,
+    "embeddedLanguageFormatting": "auto",
+    "endOfLine": "lf",
+    "jsxSingleQuote": false,
+    "objectWrap": "preserve",
+    "proseWrap": "preserve",
+    "semi": true,
+    "singleAttributePerLine": true,
+    "singleQuote": false,
+    "tabWidth": 4,
+    "trailingComma": "all",
+    "useTabs": false,
+    "experimentalOperatorPosition": "start",
+    "experimentalTernaries": false
+}

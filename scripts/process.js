@@ -6,7 +6,9 @@ function createDefineDebugTransformer(debug) {
     return (context) => {
         const visitor = (node) => {
             if (ts.isIdentifier(node) && node.text === "__DEBUG__") {
-                return debug ? ts.factory.createTrue() : ts.factory.createFalse();
+                return debug
+                    ? ts.factory.createTrue()
+                    : ts.factory.createFalse();
             }
             return ts.visitEachChild(node, visitor, context);
         };
@@ -18,11 +20,10 @@ function createDefineDebugTransformer(debug) {
 /**
  * @param {string} src_dir
  * @param {string} dst_dir
- * @param {string} src_path 
- * @param {boolean?} debug 
+ * @param {string} src_path
+ * @param {boolean?} debug
  */
 export function processFile(src_dir, dst_dir, src_path, debug) {
-
     const rel_path = path.relative(src_dir, src_path);
     const dst_path = path.join(dst_dir, rel_path);
 
@@ -30,10 +31,12 @@ export function processFile(src_dir, dst_dir, src_path, debug) {
 
     if (src.isDirectory()) {
         fs.mkdirSync(dst_path, { recursive: true });
-        fs.readdirSync(src_path).forEach((file) => processFile(src_dir, dst_dir, path.join(src_path, file), debug));
+        fs.readdirSync(src_path).forEach((file) =>
+            processFile(src_dir, dst_dir, path.join(src_path, file), debug),
+        );
     } else if (src.isFile()) {
-        if (src_path.endsWith('.ts')) {
-            const input = fs.readFileSync(src_path, 'utf-8');
+        if (src_path.endsWith(".ts")) {
+            const input = fs.readFileSync(src_path, "utf-8");
             const result = ts.transpileModule(input, {
                 compilerOptions: {
                     target: ts.ScriptTarget.ES2020,
@@ -51,11 +54,15 @@ export function processFile(src_dir, dst_dir, src_path, debug) {
                 fileName: src_path,
             });
 
-            const js_dst_path = dst_path.replace(/\.ts$/, '.js');
-            fs.writeFileSync(js_dst_path, result.outputText, 'utf-8');
+            const js_dst_path = dst_path.replace(/\.ts$/, ".js");
+            fs.writeFileSync(js_dst_path, result.outputText, "utf-8");
 
             if (debug) {
-                fs.writeFileSync(`${js_dst_path}.map`, result.sourceMapText, 'utf-8');
+                fs.writeFileSync(
+                    `${js_dst_path}.map`,
+                    result.sourceMapText,
+                    "utf-8",
+                );
                 fs.copyFileSync(src_path, dst_path);
             }
         } else {

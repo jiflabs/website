@@ -2,8 +2,10 @@ export declare const __DEBUG__: boolean;
 
 import { InlineSVGElement } from "./components/inline-svg.js";
 import { PageLayout } from "./components/layout.js";
+import { LoremIpsumElement } from "./components/lorem.js";
 
 customElements.define("inline-svg", InlineSVGElement);
+customElements.define("lorem-ipsum", LoremIpsumElement);
 customElements.define("page-layout", PageLayout);
 
 if (__DEBUG__) {

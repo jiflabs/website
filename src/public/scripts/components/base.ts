@@ -1,5 +1,4 @@
 export class BaseElement extends HTMLElement {
-
     private readonly root: ShadowRoot;
 
     constructor() {
@@ -38,11 +37,11 @@ export class BaseElement extends HTMLElement {
         render(await this.template(), await this.styles(), this.root);
     }
 
-    connected() { }
-    disconnected() { }
-    moved() { }
-    adopted() { }
-    attrchanged(name: string, oldValue: string, newValue: string) { }
+    connected() {}
+    disconnected() {}
+    moved() {}
+    adopted() {}
+    attrchanged(name: string, oldValue: string, newValue: string) {}
 
     async template(): Promise<Template<"html"> | null> {
         return null;
@@ -59,24 +58,42 @@ export interface Template<T extends string> {
     values: unknown[];
 }
 
-export function css(strings: TemplateStringsArray, ...values: unknown[]): Template<"css"> {
+export function css(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+): Template<"css"> {
     return { type: "css", strings: [...strings], values };
 }
 
-export function html(strings: TemplateStringsArray, ...values: unknown[]): Template<"html"> {
+export function html(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+): Template<"html"> {
     return { type: "html", strings: [...strings], values };
 }
 
-export function render(template: Template<"html"> | null, styles: Template<"css"> | null, container: ShadowRoot) {
+export function render(
+    template: Template<"html"> | null,
+    styles: Template<"css"> | null,
+    container: ShadowRoot,
+) {
     if (template !== null) {
-        container.innerHTML = template.strings.reduce((acc, str, idx) => acc + (template.values[idx] ?? "") + str, "");
+        container.innerHTML = template.strings.reduce(
+            (acc, str, idx) => acc + (template.values[idx] ?? "") + str,
+            "",
+        );
     } else {
         container.innerHTML = "";
     }
 
     if (styles !== null) {
         const sheet = new CSSStyleSheet();
-        sheet.replaceSync(styles.strings.reduce((acc, str, idx) => acc + (styles.values[idx] ?? "") + str, ""));
+        sheet.replaceSync(
+            styles.strings.reduce(
+                (acc, str, idx) => acc + (styles.values[idx] ?? "") + str,
+                "",
+            ),
+        );
 
         container.adoptedStyleSheets = [sheet];
     } else {

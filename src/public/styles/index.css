@@ -1,9 +1,9 @@
 :root {
-    --app-color-1: #E8985E;
-    --app-color-2: #A93F55;
-    --app-color-3: #19323C;
-    --app-color-4: #F5F9E9;
-    --app-color-5: #5B85AA;
+    --app-color-1: #e8985e;
+    --app-color-2: #a93f55;
+    --app-color-3: #19323c;
+    --app-color-4: #f5f9e9;
+    --app-color-5: #5b85aa;
 
     --color-text: var(--app-color-4);
     --color-text-contrast: var(--app-color-3);
@@ -13,7 +13,7 @@
 
     --font-xxl: 3rem;
     --font-xl: 2.4rem;
-    --font-l: 2.0rem;
+    --font-l: 2rem;
     --font-m: 1.6rem;
     --font-s: 1.2rem;
 
@@ -81,7 +81,7 @@ header {
     background-color: var(--color-text-contrast);
     padding: var(--space-m) var(--space-s);
 
-    >nav>ul {
+    > nav > ul {
         display: flex;
         flex-flow: row nowrap;
         gap: var(--space-m);
@@ -103,7 +103,7 @@ footer {
 
     margin-top: var(--space-xxl);
 
-    >nav>ul {
+    > nav > ul {
         display: flex;
         flex-flow: row nowrap;
         gap: var(--space-s);
@@ -170,7 +170,9 @@ a {
 
     font-weight: bold;
 
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
 }
 
 a:hover,
@@ -195,7 +197,9 @@ button {
 
     padding: var(--space-l) var(--space-xl);
 
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
 }
 
 button:hover,

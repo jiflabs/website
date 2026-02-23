@@ -16,7 +16,7 @@ const BLOB_PREFIX = `${path.sep}blob${path.sep}`;
 
 /**
  * @param {{ public_dir: string, pages_dir: string }} config
- * @param {string} url_path 
+ * @param {string} url_path
  * @returns {[string, boolean] | [null, false]}
  */
 function resolvePath(config, url_path) {
@@ -38,7 +38,10 @@ function resolvePath(config, url_path) {
     }
 
     const ext = normalized.lastIndexOf(".");
-    const abs = path.join(config.pages_dir, normalized.slice(0, ext < 0 ? undefined : ext));
+    const abs = path.join(
+        config.pages_dir,
+        normalized.slice(0, ext < 0 ? undefined : ext),
+    );
     if (fs.existsSync(abs)) {
         const stat = fs.statSync(abs);
         if (stat.isFile()) {
@@ -46,7 +49,10 @@ function resolvePath(config, url_path) {
         }
     }
 
-    const html_path = path.join(path.dirname(abs), `${path.basename(abs)}.html`);
+    const html_path = path.join(
+        path.dirname(abs),
+        `${path.basename(abs)}.html`,
+    );
     if (fs.existsSync(html_path)) {
         const stat = fs.statSync(html_path);
         if (stat.isFile()) {
@@ -74,7 +80,7 @@ function resolvePath(config, url_path) {
 }
 
 /**
- * @param {{ hostname: string, port: string, public_dir: string, pages_dir: string }} config 
+ * @param {{ hostname: string, port: string, public_dir: string, pages_dir: string }} config
  */
 function runServer(config) {
     const server = http.createServer((req, res) => {
@@ -99,23 +105,31 @@ function runServer(config) {
                 return;
             }
 
-            res.writeHead(ok ? 200 : 404, { "content-type": mime.lookup(file_path) || "application/octet-stream" });
+            res.writeHead(ok ? 200 : 404, {
+                "content-type":
+                    mime.lookup(file_path) || "application/octet-stream",
+            });
             res.end(data);
         });
     });
 
     server.listen(config.port, config.hostname, () => {
-        console.log(`HTTP listening on http://${config.hostname}:${config.port}`);
+        console.log(
+            `HTTP listening on http://${config.hostname}:${config.port}`,
+        );
     });
 }
 
 /**
- * @param {{ src_dir: string, dst_dir: string, hostname: string, port: string, ws_port: string, public_dir: string, pages_dir: string }} config 
+ * @param {{ src_dir: string, dst_dir: string, hostname: string, port: string, ws_port: string, public_dir: string, pages_dir: string }} config
  */
 function development(config) {
     const clients = new Set();
 
-    const ws_server = new WebSocketServer({ host: config.hostname, port: config.ws_port });
+    const ws_server = new WebSocketServer({
+        host: config.hostname,
+        port: config.ws_port,
+    });
 
     function broadcastReload() {
         for (const ws of clients) {
@@ -139,7 +153,9 @@ function development(config) {
         });
     });
 
-    console.log(`WebSocket listening on ws://${config.hostname}:${config.ws_port}`);
+    console.log(
+        `WebSocket listening on ws://${config.hostname}:${config.ws_port}`,
+    );
 
     processAll(config.src_dir, config.dst_dir, true);
 
@@ -166,22 +182,14 @@ function development(config) {
 }
 
 /**
- * @param {{ hostname: string, port: string, public_dir: string, pages_dir: string }} config 
+ * @param {{ hostname: string, port: string, public_dir: string, pages_dir: string }} config
  */
 function production(config) {
     runServer(config);
 }
 
 function main(args) {
-
-    const {
-        mode,
-        src_dir,
-        dst_dir,
-        hostname,
-        port,
-        ws_port,
-    } = parse(args, {
+    const { mode, src_dir, dst_dir, hostname, port, ws_port } = parse(args, {
         mode: ["string", true],
         src_dir: ["string", false],
         dst_dir: ["string", true],
@@ -198,11 +206,24 @@ function main(args) {
             if (typeof src_dir === "undefined") {
                 throw new Error(`Missing required param "src_dir".`);
             }
-            development({ src_dir, dst_dir, hostname: hostname ?? "0.0.0.0", port: port ?? "8080", ws_port: ws_port ?? "8090", public_dir, pages_dir });
+            development({
+                src_dir,
+                dst_dir,
+                hostname: hostname ?? "0.0.0.0",
+                port: port ?? "8080",
+                ws_port: ws_port ?? "8090",
+                public_dir,
+                pages_dir,
+            });
             break;
 
         case "production":
-            production({ hostname: hostname ?? "0.0.0.0", port: port ?? "8080", public_dir, pages_dir });
+            production({
+                hostname: hostname ?? "0.0.0.0",
+                port: port ?? "8080",
+                public_dir,
+                pages_dir,
+            });
             break;
     }
 }

@@ -1,31 +1,33 @@
 {
-  "name": "website",
-  "version": "1.0.0",
-  "description": "",
-  "homepage": "https://www.jiflabs.de",
-  "bugs": {
-    "url": "https://github.com/jiflabs/website/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jiflabs/website.git"
-  },
-  "license": "ISC",
-  "author": "",
-  "type": "module",
-  "scripts": {
-    "build": "node scripts/build.js src_dir=./src dst_dir=./dst",
-    "start": "node scripts/server.js mode=production dst_dir=./dst",
-    "dev": "node scripts/server.js mode=development src_dir=./src dst_dir=./dst"
-  },
-  "engines": {
-    "node": "~25.6.1"
-  },
-  "devDependencies": {
-    "chokidar": "^5.0.0",
-    "mime-types": "^3.0.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "ws": "^8.19.0"
-  }
+    "name": "website",
+    "version": "1.0.0",
+    "description": "",
+    "homepage": "https://www.jiflabs.de",
+    "bugs": {
+        "url": "https://github.com/jiflabs/website/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jiflabs/website.git"
+    },
+    "license": "ISC",
+    "author": "",
+    "type": "module",
+    "scripts": {
+        "build": "node scripts/build.js src_dir=./src dst_dir=./dst",
+        "start": "node scripts/server.js mode=production dst_dir=./dst",
+        "dev": "node scripts/server.js mode=development src_dir=./src dst_dir=./dst",
+        "format": "npx prettier . --write"
+    },
+    "engines": {
+        "node": "~25.6.1"
+    },
+    "devDependencies": {
+        "chokidar": "^5.0.0",
+        "mime-types": "^3.0.2",
+        "prettier": "^3.8.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3",
+        "ws": "^8.19.0"
+    }
 }
