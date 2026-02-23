@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
+import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import fs from "node:fs";
 
 import { WebSocket, WebSocketServer } from "ws";
 
@@ -10,41 +10,67 @@ import chokidar from "chokidar";
 import mime from "mime-types";
 
 import { parse } from "./param.js";
-import { processFile, processAll } from "./process.js";
+import { processAll, processFile } from "./process.js";
+
+const BLOB_PREFIX = `${path.sep}blob${path.sep}`;
 
 /**
  * @param {{ public_dir: string, pages_dir: string }} config
  * @param {string} url_path 
- * @returns {[string, boolean]}
+ * @returns {[string, boolean] | [null, false]}
  */
 function resolvePath(config, url_path) {
     const clean = url_path.split("?")[0].split("#")[0];
     const normalized = path.normalize(clean);
 
-    if (normalized.startsWith("/blob/")) {
-        const rel = normalized.slice("/blob/".length);
+    if (normalized.startsWith(BLOB_PREFIX)) {
+        const rel = normalized.slice(BLOB_PREFIX.length);
         const abs = path.join(config.public_dir, rel);
-        return [abs, true];
+
+        if (fs.existsSync(abs)) {
+            const stat = fs.statSync(abs);
+            if (stat.isFile()) {
+                return [abs, true];
+            }
+        }
+
+        return [null, false];
     }
 
-    const rel = normalized.replace(/^\/+/, "");
-    const abs = path.join(config.pages_dir, rel);
-
+    const ext = normalized.lastIndexOf(".");
+    const abs = path.join(config.pages_dir, normalized.slice(0, ext < 0 ? undefined : ext));
     if (fs.existsSync(abs)) {
-        return [abs, true];
+        const stat = fs.statSync(abs);
+        if (stat.isFile()) {
+            return [abs, true];
+        }
     }
 
-    const file_abs = `${abs}.html`;
-    if (fs.existsSync(file_abs)) {
-        return [file_abs, true];
+    const html_path = path.join(path.dirname(abs), `${path.basename(abs)}.html`);
+    if (fs.existsSync(html_path)) {
+        const stat = fs.statSync(html_path);
+        if (stat.isFile()) {
+            return [html_path, true];
+        }
     }
 
-    const dir_abs = `${abs}/index.html`;
-    if (fs.existsSync(dir_abs)) {
-        return [dir_abs, true];
+    const index_path = path.join(abs, "index.html");
+    if (fs.existsSync(index_path)) {
+        const stat = fs.statSync(index_path);
+        if (stat.isFile()) {
+            return [index_path, true];
+        }
     }
 
-    return [path.join(config.pages_dir, "not-found.html"), false];
+    const not_found_path = path.join(config.pages_dir, "not-found.html");
+    if (fs.existsSync(not_found_path)) {
+        const stat = fs.statSync(not_found_path);
+        if (stat.isFile()) {
+            return [not_found_path, false];
+        }
+    }
+
+    return [null, false];
 }
 
 /**
@@ -59,6 +85,12 @@ function runServer(config) {
         }
 
         const [file_path, ok] = resolvePath(config, request_path);
+
+        if (!file_path) {
+            res.writeHead(404);
+            res.end("Not found");
+            return;
+        }
 
         fs.readFile(file_path, (err, data) => {
             if (err) {

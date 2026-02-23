@@ -1,5 +1,4 @@
 /**
- * @template T
  * @param {string[]} argv
  * @param {{ [key: string]: ["string" | "boolean", boolean] }} template
  * @returns {{ [key: string]: string | boolean | undefined }}
