@@ -58,6 +58,10 @@ body {
     font-size: var(--font-s);
 }
 
+body.wait {
+    display: none;
+}
+
 main {
     margin-bottom: auto;
 }

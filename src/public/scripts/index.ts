@@ -8,6 +8,8 @@ customElements.define("inline-svg", InlineSVGElement);
 customElements.define("lorem-ipsum", LoremIpsumElement);
 customElements.define("page-layout", PageLayout);
 
+document.body.classList.remove("wait");
+
 if (__DEBUG__) {
     const ws = new WebSocket(`ws://${location.hostname}:8090/live`);
     ws.onmessage = (event) => {

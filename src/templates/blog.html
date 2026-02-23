@@ -17,15 +17,14 @@
             media="screen"
             href="/blob/styles/index.css"
         />
-        <title>%data.title% | %global.title%</title>
-    </head>
-
-    <body>
-        <page-layout>%content%</page-layout>
-
         <script
             src="/blob/scripts/index.js"
             type="module"
         ></script>
+        <title>%data.title% | %global.title%</title>
+    </head>
+
+    <body class="wait">
+        <page-layout>%content%</page-layout>
     </body>
 </html>
