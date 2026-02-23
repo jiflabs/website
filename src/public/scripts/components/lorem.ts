@@ -10,20 +10,19 @@ export class LoremIpsumElement extends BaseElement {
     }
 
     override async template(): Promise<Template<"html"> | null> {
-        const response = await fetch(
-            `https://lorem-api.com/api/lorem?paragraphs=${this.count}`,
-        );
+        const response = await fetch(`https://lorem-api.com/api/lorem?paragraphs=${this.count}`);
 
         const text: string = await response.text();
 
-        return html` ${text} `;
+        return html`${text
+            .split("\n")
+            .map((line) => `<p>${line}</p>`)
+            .join("\n")}`;
     }
 
-    override attrchanged(
-        name: string,
-        oldValue: string,
-        newValue: string,
-    ): void {
+    override attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
+        super.attributeChangedCallback(name, oldValue, newValue);
+
         switch (name) {
             case "count":
                 this.count = parseInt(newValue, 10);

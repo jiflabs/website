@@ -15,12 +15,19 @@ import { processAll, processFile } from "./process.js";
 const BLOB_PREFIX = `${path.sep}blob${path.sep}`;
 
 /**
- * @param {{ public_dir: string, pages_dir: string }} config
- * @param {string} url_path
+ * @typedef {{ public_dir: string, pages_dir: string }} ResolveConfig
+ * @typedef {{ hostname: string, port: string } & ResolveConfig} ServerConfig
+ * @typedef {ServerConfig} ProductionConfig
+ * @typedef {{ src_dir: string, dst_dir: string, ws_port: string } & ServerConfig} DevelopmentConfig
+ */
+
+/**
+ * @param {ResolveConfig} config
+ * @param {string} pathname
  * @returns {[string, boolean] | [null, false]}
  */
-function resolvePath(config, url_path) {
-    const clean = url_path.split("?")[0].split("#")[0];
+function resolvePath(config, pathname) {
+    const clean = pathname.split("?")[0].split("#")[0];
     const normalized = path.normalize(clean);
 
     if (normalized.startsWith(BLOB_PREFIX)) {
@@ -38,10 +45,7 @@ function resolvePath(config, url_path) {
     }
 
     const ext = normalized.lastIndexOf(".");
-    const abs = path.join(
-        config.pages_dir,
-        normalized.slice(0, ext < 0 ? undefined : ext),
-    );
+    const abs = path.join(config.pages_dir, normalized.slice(0, ext < 0 ? undefined : ext));
     if (fs.existsSync(abs)) {
         const stat = fs.statSync(abs);
         if (stat.isFile()) {
@@ -49,10 +53,7 @@ function resolvePath(config, url_path) {
         }
     }
 
-    const html_path = path.join(
-        path.dirname(abs),
-        `${path.basename(abs)}.html`,
-    );
+    const html_path = path.join(path.dirname(abs), `${path.basename(abs)}.html`);
     if (fs.existsSync(html_path)) {
         const stat = fs.statSync(html_path);
         if (stat.isFile()) {
@@ -80,17 +81,13 @@ function resolvePath(config, url_path) {
 }
 
 /**
- * @param {{ hostname: string, port: string, public_dir: string, pages_dir: string }} config
+ * @param {ServerConfig} config
  */
 function runServer(config) {
     const server = http.createServer((req, res) => {
-        let request_path = req.url;
+        console.log("%s %s", req.method, req.url);
 
-        if (request_path === "/") {
-            request_path = "/index.html";
-        }
-
-        const [file_path, ok] = resolvePath(config, request_path);
+        const [file_path, ok] = resolvePath(config, req.url);
 
         if (!file_path) {
             res.writeHead(404);
@@ -106,22 +103,19 @@ function runServer(config) {
             }
 
             res.writeHead(ok ? 200 : 404, {
-                "content-type":
-                    mime.lookup(file_path) || "application/octet-stream",
+                "content-type": mime.lookup(file_path) || "application/octet-stream",
             });
             res.end(data);
         });
     });
 
     server.listen(config.port, config.hostname, () => {
-        console.log(
-            `HTTP listening on http://${config.hostname}:${config.port}`,
-        );
+        console.log(`HTTP listening on http://${config.hostname}:${config.port}`);
     });
 }
 
 /**
- * @param {{ src_dir: string, dst_dir: string, hostname: string, port: string, ws_port: string, public_dir: string, pages_dir: string }} config
+ * @param {DevelopmentConfig} config
  */
 function development(config) {
     const clients = new Set();
@@ -153,9 +147,7 @@ function development(config) {
         });
     });
 
-    console.log(
-        `WebSocket listening on ws://${config.hostname}:${config.ws_port}`,
-    );
+    console.log(`WebSocket listening on ws://${config.hostname}:${config.ws_port}`);
 
     processAll(config.src_dir, config.dst_dir, true);
 
@@ -182,7 +174,7 @@ function development(config) {
 }
 
 /**
- * @param {{ hostname: string, port: string, public_dir: string, pages_dir: string }} config
+ * @param {ProductionConfig} config
  */
 function production(config) {
     runServer(config);

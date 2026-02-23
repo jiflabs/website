@@ -48,11 +48,9 @@ export class InlineSVGElement extends BaseElement {
         `;
     }
 
-    override attrchanged(
-        name: string,
-        oldValue: string,
-        newValue: string,
-    ): void {
+    override attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
+        super.attributeChangedCallback(name, oldValue, newValue);
+
         switch (name) {
             case "src":
                 this.src = newValue;

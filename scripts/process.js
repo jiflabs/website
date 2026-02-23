@@ -6,9 +6,7 @@ function createDefineDebugTransformer(debug) {
     return (context) => {
         const visitor = (node) => {
             if (ts.isIdentifier(node) && node.text === "__DEBUG__") {
-                return debug
-                    ? ts.factory.createTrue()
-                    : ts.factory.createFalse();
+                return debug ? ts.factory.createTrue() : ts.factory.createFalse();
             }
             return ts.visitEachChild(node, visitor, context);
         };
@@ -31,9 +29,7 @@ export function processFile(src_dir, dst_dir, src_path, debug) {
 
     if (src.isDirectory()) {
         fs.mkdirSync(dst_path, { recursive: true });
-        fs.readdirSync(src_path).forEach((file) =>
-            processFile(src_dir, dst_dir, path.join(src_path, file), debug),
-        );
+        fs.readdirSync(src_path).forEach((file) => processFile(src_dir, dst_dir, path.join(src_path, file), debug));
     } else if (src.isFile()) {
         if (src_path.endsWith(".ts")) {
             const input = fs.readFileSync(src_path, "utf-8");
@@ -58,11 +54,7 @@ export function processFile(src_dir, dst_dir, src_path, debug) {
             fs.writeFileSync(js_dst_path, result.outputText, "utf-8");
 
             if (debug) {
-                fs.writeFileSync(
-                    `${js_dst_path}.map`,
-                    result.sourceMapText,
-                    "utf-8",
-                );
+                fs.writeFileSync(`${js_dst_path}.map`, result.sourceMapText, "utf-8");
                 fs.copyFileSync(src_path, dst_path);
             }
         } else {
