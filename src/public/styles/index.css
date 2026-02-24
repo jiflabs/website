@@ -1,5 +1,3 @@
-@import url("./monokai.min.css");
-
 :root {
     --app-color-1: #e8985e;
     --app-color-2: #a93f55;
@@ -88,16 +86,16 @@ header {
 
     background-color: var(--color-text-contrast);
     padding: var(--space-m) var(--space-s);
+}
 
-    > nav > ul {
-        display: flex;
-        flex-flow: row nowrap;
-        gap: var(--space-m);
-        align-items: center;
-        justify-content: flex-start;
+header > nav > ul {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-m);
+    align-items: center;
+    justify-content: flex-start;
 
-        list-style: none;
-    }
+    list-style: none;
 }
 
 footer {
@@ -110,16 +108,16 @@ footer {
     padding: var(--space-m) var(--space-s);
 
     margin-top: var(--space-xxl);
+}
 
-    > nav > ul {
-        display: flex;
-        flex-flow: row nowrap;
-        gap: var(--space-s);
-        align-items: center;
-        justify-content: flex-start;
+footer > nav > ul {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-s);
+    align-items: center;
+    justify-content: flex-start;
 
-        list-style: none;
-    }
+    list-style: none;
 }
 
 h1 {
@@ -257,16 +255,22 @@ label:has(input[type="checkbox"]) {
     margin-right: auto;
 
     width: min(80ch, 100%);
+}
 
-    @media only screen and (max-width: 1000px) {
+@media only screen and (max-width: 1000px) {
+    .container {
         width: min(60ch, 100%);
     }
+}
 
-    @media only screen and (max-width: 800px) {
+@media only screen and (max-width: 800px) {
+    .container {
         width: min(40ch, 100%);
     }
+}
 
-    @media only screen and (max-width: 300px) {
+@media only screen and (max-width: 300px) {
+    .container {
         padding-left: var(--space-m);
         padding-right: var(--space-m);
 
