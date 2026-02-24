@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
+import http from "node:http";
 import http2 from "node:http2";
 import https from "node:https";
 import path from "node:path";
@@ -18,7 +19,7 @@ const CONTENT_PREFIX = `${path.sep}content${path.sep}`;
 
 /**
  * @typedef {{ publicDir: string, pagesDir: string, contentDir: string }} ResolveConfig
- * @typedef {{ keyFile: string, certFile: string, hostname: string, port: string, cache?: string } & ResolveConfig} ServerConfig
+ * @typedef {{ keyFile?: string, certFile?: string, hostname: string, port: string, cache?: string } & ResolveConfig} ServerConfig
  * @typedef {ServerConfig} ProductionConfig
  * @typedef {{ srcDir: string, dstDir: string, wsPort: string } & ServerConfig} DevelopmentConfig
  */
@@ -91,9 +92,55 @@ function resolvePath(config, pathname) {
 }
 
 /**
+ * @param {string} hostname
+ * @returns {string}
+ */
+const formatHostname = (hostname) => (hostname.includes(":") ? `[${hostname}]` : hostname);
+
+/**
  * @param {ServerConfig} config
  */
-function runServer(config) {
+function runServerHTTP(config) {
+    const server = http.createServer();
+
+    server.on("request", (request, response) => {
+        const method = request.method;
+        const pathname = request.url;
+
+        console.log("%s %s", method, pathname);
+
+        const [filename, ok] = resolvePath(config, pathname);
+
+        if (!filename) {
+            response.writeHead(404);
+            response.end("Not found");
+            return;
+        }
+
+        fs.readFile(filename, (err, data) => {
+            if (err) {
+                response.writeHead(404);
+                response.end("Not found");
+                return;
+            }
+
+            response.writeHead(ok ? 200 : 404, {
+                "content-type": mime.lookup(filename) || "application/octet-stream",
+                "cache-control": config.cache,
+            });
+            response.end(data);
+        });
+    });
+
+    server.listen(config.port, config.hostname, undefined, () => {
+        console.log(`HTTP listening on http://${formatHostname(config.hostname)}:${config.port}`);
+    });
+}
+
+/**
+ * @param {ServerConfig} config
+ */
+function runServerHTTPS(config) {
     const options = {
         key: fs.readFileSync(config.keyFile),
         cert: fs.readFileSync(config.certFile),
@@ -132,8 +179,46 @@ function runServer(config) {
     });
 
     server.listen(config.port, config.hostname, undefined, () => {
-        console.log(`HTTPS listening on https://${config.hostname}:${config.port}`);
+        console.log(`HTTPS listening on https://${formatHostname(config.hostname)}:${config.port}`);
     });
+}
+
+/**
+ * @param {ServerConfig} config
+ */
+function runServer(config) {
+    if (config.keyFile && config.certFile) {
+        runServerHTTPS(config);
+    } else {
+        runServerHTTP(config);
+    }
+}
+
+/**
+ * @param {{ wsPort: string } & ServerConfig} config
+ */
+function runWSServer(config) {
+    if (config.keyFile && config.certFile) {
+        const options = {
+            key: fs.readFileSync(config.keyFile),
+            cert: fs.readFileSync(config.certFile),
+        };
+        const server = https.createServer(options);
+
+        server.listen(config.wsPort, config.hostname, undefined, () => {
+            console.log(`WSS listening on wss://${formatHostname(config.hostname)}:${config.wsPort}`);
+        });
+
+        return server;
+    } else {
+        const server = http.createServer();
+
+        server.listen(config.wsPort, config.hostname, undefined, () => {
+            console.log(`WS listening on ws://${formatHostname(config.hostname)}:${config.wsPort}`);
+        });
+
+        return server;
+    }
 }
 
 /**
@@ -153,18 +238,8 @@ function development(config) {
         }
     }
 
-    const options = {
-        key: fs.readFileSync(config.keyFile),
-        cert: fs.readFileSync(config.certFile),
-    };
-
-    const wssServer = https.createServer(options);
-
-    wssServer.listen(config.wsPort, config.hostname, undefined, () => {
-        console.log(`WSS listening on wss://${config.hostname}:${config.wsPort}`);
-    });
-
-    const wss = new WebSocketServer({ server: wssServer });
+    const wsServer = runWSServer(config);
+    const wss = new WebSocketServer({ server: wsServer });
 
     wss.on("connection", (ws) => {
         clients.add(ws);
@@ -223,8 +298,8 @@ function main(args) {
         "--mode": ["string", true],
         "--src-dir": ["string", false],
         "--dst-dir": ["string", true],
-        "--key-file": ["string", true],
-        "--cert-file": ["string", true],
+        "--key-file": ["string", false],
+        "--cert-file": ["string", false],
         "--hostname": ["string", false],
         "--port": ["string", false],
         "--ws-port": ["string", false],
