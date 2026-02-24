@@ -11,7 +11,7 @@
         "url": "git+https://github.com/jiflabs/website.git"
     },
     "license": "ISC",
-    "author": "",
+    "author": "Felix Schreiber",
     "type": "module",
     "scripts": {
         "build": "node scripts/build.js --src-dir=src --dst-dir=dst",
