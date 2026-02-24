@@ -1,2 +1,4 @@
-/node_modules/
 /dst/
+/node_modules/
+
+*.local

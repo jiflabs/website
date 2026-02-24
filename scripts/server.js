@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import http from "node:http";
+import http2 from "node:http2";
 import path from "node:path";
 
 import { WebSocket, WebSocketServer } from "ws";
@@ -17,7 +17,7 @@ const CONTENT_PREFIX = `${path.sep}content${path.sep}`;
 
 /**
  * @typedef {{ publicDir: string, pagesDir: string, contentDir: string }} ResolveConfig
- * @typedef {{ hostname: string, port: string, cache?: string } & ResolveConfig} ServerConfig
+ * @typedef {{ keyFile: string, certFile: string, hostname: string, port: string, cache?: string } & ResolveConfig} ServerConfig
  * @typedef {ServerConfig} ProductionConfig
  * @typedef {{ srcDir: string, dstDir: string, wsPort: string } & ServerConfig} DevelopmentConfig
  */
@@ -93,33 +93,44 @@ function resolvePath(config, pathname) {
  * @param {ServerConfig} config
  */
 function runServer(config) {
-    const server = http.createServer((req, res) => {
-        console.log("%s %s", req.method, req.url);
+    const options = {
+        key: fs.readFileSync(config.keyFile),
+        cert: fs.readFileSync(config.certFile),
+    };
 
-        const [filename, ok] = resolvePath(config, req.url);
+    const server = http2.createSecureServer(options);
+
+    server.on("stream", (stream, headers) => {
+        const method = headers[":method"];
+        const pathname = headers[":path"];
+
+        console.log("%s %s", method, pathname);
+
+        const [filename, ok] = resolvePath(config, pathname);
 
         if (!filename) {
-            res.writeHead(404);
-            res.end("Not found");
+            stream.respond({ ":status": 404 });
+            stream.end("Not found");
             return;
         }
 
         fs.readFile(filename, (err, data) => {
             if (err) {
-                res.writeHead(404);
-                res.end("Not found");
+                stream.respond({ ":status": 404 });
+                stream.end("Not found");
                 return;
             }
 
-            res.writeHead(ok ? 200 : 404, {
+            stream.respond({
+                ":status": ok ? 200 : 404,
                 "content-type": mime.lookup(filename) || "application/octet-stream",
                 "cache-control": config.cache,
             });
-            res.end(data);
+            stream.end(data);
         });
     });
 
-    server.listen(config.port, config.hostname, () => {
+    server.listen(config.port, config.hostname, undefined, () => {
         console.log(`HTTP listening on http://${config.hostname}:${config.port}`);
     });
 }
@@ -198,6 +209,8 @@ function main(args) {
         "--mode": mode,
         "--src-dir": srcDir,
         "--dst-dir": dstDir,
+        "--key-file": keyFile,
+        "--cert-file": certFile,
         "--hostname": hostname,
         "--port": port,
         "--ws-port": wsPort,
@@ -205,14 +218,16 @@ function main(args) {
         "--mode": ["string", true],
         "--src-dir": ["string", false],
         "--dst-dir": ["string", true],
+        "--key-file": ["string", true],
+        "--cert-file": ["string", true],
         "--hostname": ["string", false],
         "--port": ["string", false],
         "--ws-port": ["string", false],
     });
 
-    const publicDir = `${dstDir}/public`;
-    const pagesDir = `${dstDir}/pages`;
-    const contentDir = `${dstDir}/content`;
+    const publicDir = path.join(dstDir, "public");
+    const pagesDir = path.join(dstDir, "pages");
+    const contentDir = path.join(dstDir, "content");
 
     switch (mode) {
         case "development":
@@ -220,26 +235,30 @@ function main(args) {
                 throw new Error(`Missing required param "src_dir".`);
             }
             development({
-                srcDir: srcDir,
-                dstDir: dstDir,
+                srcDir,
+                dstDir,
+                wsPort: wsPort ?? "8090",
+                keyFile,
+                certFile,
                 hostname: hostname ?? "0.0.0.0",
                 port: port ?? "8080",
-                wsPort: wsPort ?? "8090",
+                cache: `public, max-age=${5 * 60}, immutable`,
                 publicDir,
                 pagesDir,
                 contentDir,
-                cache: `public, max-age=${5 * 60}, immutable`,
             });
             break;
 
         case "production":
             production({
+                keyFile,
+                certFile,
                 hostname: hostname ?? "0.0.0.0",
                 port: port ?? "8080",
+                cache: `public, max-age=${7 * 24 * 60 * 60}, immutable`,
                 publicDir,
                 pagesDir,
                 contentDir,
-                cache: `public, max-age=${7 * 24 * 60 * 60}, immutable`,
             });
             break;
     }
