@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import http2 from "node:http2";
+import https from "node:https";
 import path from "node:path";
 
 import { WebSocket, WebSocketServer } from "ws";
@@ -131,7 +132,7 @@ function runServer(config) {
     });
 
     server.listen(config.port, config.hostname, undefined, () => {
-        console.log(`HTTP listening on http://${config.hostname}:${config.port}`);
+        console.log(`HTTPS listening on https://${config.hostname}:${config.port}`);
     });
 }
 
@@ -144,11 +145,6 @@ function development(config) {
      */
     const clients = new Set();
 
-    const wsServer = new WebSocketServer({
-        host: config.hostname,
-        port: config.wsPort,
-    });
-
     function broadcastReload() {
         for (const ws of clients) {
             if (ws.readyState === WebSocket.OPEN) {
@@ -157,7 +153,20 @@ function development(config) {
         }
     }
 
-    wsServer.on("connection", (ws) => {
+    const options = {
+        key: fs.readFileSync(config.keyFile),
+        cert: fs.readFileSync(config.certFile),
+    };
+
+    const wssServer = https.createServer(options);
+
+    wssServer.listen(config.wsPort, config.hostname, undefined, () => {
+        console.log(`WSS listening on wss://${config.hostname}:${config.wsPort}`);
+    });
+
+    const wss = new WebSocketServer({ server: wssServer });
+
+    wss.on("connection", (ws) => {
         clients.add(ws);
 
         ws.on("message", (msg) => {
@@ -171,16 +180,12 @@ function development(config) {
         });
     });
 
-    console.log(`WebSocket listening on ws://${config.hostname}:${config.wsPort}`);
-
     processAll({ srcDir: config.srcDir, dstDir: config.dstDir, debug: true });
 
-    const watcher = chokidar.watch(config.srcDir, {
-        ignoreInitial: true,
-    });
+    const watcher = chokidar.watch(config.srcDir, { ignoreInitial: true });
 
     watcher.on("all", (event, file_path) => {
-        console.log(event, file_path);
+        console.log("Watcher saw %s for %s", event, file_path);
 
         if (["error", "unlink", "unlinkDir"].includes(event)) {
             return;
@@ -189,8 +194,8 @@ function development(config) {
         try {
             processFile({ srcDir: config.srcDir, dstDir: config.dstDir, debug: true }, file_path);
             broadcastReload();
-        } catch (err) {
-            console.error("Error while processing:", err);
+        } catch (error) {
+            console.error("Error while processing:", error);
         }
     });
 

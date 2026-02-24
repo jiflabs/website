@@ -18,6 +18,7 @@ export class InlineSVGElement extends BaseElement {
             method: "GET",
             headers: {
                 accept: "image/svg+xml",
+                "cache-control": "force-cache",
             },
         });
 

@@ -80,7 +80,7 @@ async function processJS(config, srcPath, dstPath) {
 
         writeFile(dstPath, result.code);
     } catch (error) {
-        console.error("in file %s: %s", srcPath, error);
+        console.error("In file %s: %s", srcPath, error);
     }
 }
 
@@ -94,11 +94,11 @@ async function processCSS(config, srcPath, dstPath) {
     const result = new CleanCSS().minify(input);
 
     for (const message of result.errors) {
-        console.error("in file %s: %s", srcPath, message);
+        console.error("In file %s: %s", srcPath, message);
     }
 
     for (const message of result.warnings) {
-        console.warn("in file %s: %s", srcPath, message);
+        console.warn("In file %s: %s", srcPath, message);
     }
 
     writeFile(dstPath, result.styles);
@@ -120,7 +120,7 @@ async function processHTML(config, srcPath, dstPath) {
 
         writeFile(dstPath, result);
     } catch (error) {
-        console.error("in file %s: %s", srcPath, error);
+        console.error("In file %s: %s", srcPath, error);
     }
 }
 
@@ -152,13 +152,13 @@ async function processTS(config, srcPath, dstPath) {
         switch (diagnostic.category) {
             case ts.DiagnosticCategory.Message:
             case ts.DiagnosticCategory.Suggestion:
-                console.log("in file %s: %s", diagnostic.messageText);
+                console.log("In file %s: %s", diagnostic.messageText);
                 break;
             case ts.DiagnosticCategory.Warning:
-                console.warn("in file %s: %s", diagnostic.messageText);
+                console.warn("In file %s: %s", diagnostic.messageText);
                 break;
             case ts.DiagnosticCategory.Error:
-                console.error("in file %s: %s", diagnostic.messageText);
+                console.error("In file %s: %s", diagnostic.messageText);
                 break;
         }
     }
@@ -173,7 +173,7 @@ async function processTS(config, srcPath, dstPath) {
 
         writeFile(outputPath, result.code);
     } catch (error) {
-        console.error("in file %s: %s", srcPath, error);
+        console.error("In file %s: %s", srcPath, error);
 
         writeFile(outputPath, output);
     }
@@ -226,7 +226,7 @@ async function processMD(config, srcPath, dstPath) {
 
         writeFile(outputPath, result);
     } catch (error) {
-        console.error("in file %s: %s", srcPath, error);
+        console.error("In file %s: %s", srcPath, error);
 
         writeFile(outputPath, output);
     }
