@@ -1,4 +1,4 @@
-FROM node:26-slim AS base
+FROM node:25-slim AS base
 WORKDIR /app
 
 # ------------------------------------------ #
@@ -6,14 +6,14 @@ WORKDIR /app
 FROM base AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --only=production
 
 # ------------------------------------------ #
 
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules/ ./node_modules/
-COPY package.json package-lock.json ./
+COPY --from=dependencies /app/package.json /app/package-lock.json ./
+COPY --from=dependencies /app/node_modules/ ./node_modules/
 COPY scripts/ ./scripts/
 COPY src/ ./src/
 RUN npm run build
