@@ -16,10 +16,8 @@ export class InlineSVGElement extends BaseElement {
 
         const response = await fetch(this.src, {
             method: "GET",
-            headers: {
-                accept: "image/svg+xml",
-                "cache-control": "force-cache",
-            },
+            cache: "force-cache",
+            headers: { accept: "image/svg+xml" },
         });
 
         if (!response.ok) {
