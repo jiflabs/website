@@ -1,16 +1,18 @@
 import CleanCSS from "clean-css";
 import matter from "gray-matter";
 import hljs from "highlight.js";
+import { minify as terserMinifyHTML } from "html-minifier-terser";
 import { parse, Renderer } from "marked";
 import fs from "node:fs";
 import path from "node:path";
 import { minify as terserMinifyJS } from "terser";
-import { minify as terserMinifyHTML } from "html-minifier-terser";
 import ts from "typescript";
 import yaml from "yaml";
 
 /**
  * @typedef {{ srcDir: string, dstDir: string, debug: boolean }} Config
+ * @typedef {{ dirname?: string, basename: string, content: string }} FileReference
+ * @typedef {(config: Config, ref: FileReference) => Promise<FileReference[]>} Processor
  */
 
 /**
@@ -66,72 +68,68 @@ function instantiateTemplate(templatePath, global, data, content) {
 }
 
 /**
- * @param {Config} config
- * @param {string} srcPath
- * @param {string} dstPath
+ * @param {FileReference} ref
  */
-async function processJS(config, srcPath, dstPath) {
-    const input = readFile(srcPath);
-
-    try {
-        const result = await terserMinifyJS(input, {
-            compress: true,
-        });
-
-        writeFile(dstPath, result.code);
-    } catch (error) {
-        console.error("In file %s: %s", srcPath, error);
-    }
+function refPath(ref) {
+    return path.join(ref.dirname, ref.basename);
 }
 
 /**
- * @param {Config} config
- * @param {string} srcPath
- * @param {string} dstPath
+ * @type {Processor}
  */
-async function processCSS(config, srcPath, dstPath) {
-    const input = readFile(srcPath);
-    const result = new CleanCSS().minify(input);
+const processJS = async (config, ref) => {
+    try {
+        const result = await terserMinifyJS(ref.content, {
+            compress: true,
+            mangle: {},
+        });
+
+        return [{ basename: ref.basename, content: result.code }];
+    } catch (error) {
+        console.error("In file %s: %s", refPath(ref), error);
+        return [ref];
+    }
+};
+
+/**
+ * @type {Processor}
+ */
+const processCSS = async (config, ref) => {
+    const result = new CleanCSS().minify(ref.content);
 
     for (const message of result.errors) {
-        console.error("In file %s: %s", srcPath, message);
+        console.error("In file %s: %s", refPath(ref), message);
     }
 
     for (const message of result.warnings) {
-        console.warn("In file %s: %s", srcPath, message);
+        console.warn("In file %s: %s", refPath(ref), message);
     }
 
-    writeFile(dstPath, result.styles);
-}
+    return [{ basename: ref.basename, content: result.styles }];
+};
 
 /**
- * @param {Config} config
- * @param {string} srcPath
- * @param {string} dstPath
+ * @type {Processor}
  */
-async function processHTML(config, srcPath, dstPath) {
-    const input = readFile(srcPath);
-
+const processHTML = async (config, ref) => {
     try {
-        const result = await terserMinifyHTML(input, {
+        const result = await terserMinifyHTML(ref.content, {
             collapseWhitespace: true,
             removeComments: true,
         });
 
-        writeFile(dstPath, result);
+        return [{ basename: ref.basename, content: result }];
     } catch (error) {
-        console.error("In file %s: %s", srcPath, error);
+        console.error("In file %s: %s", refPath(ref), error);
+        return [{ basename: ref.basename, content: ref.content }];
     }
-}
+};
 
 /**
- * @param {Config} config
- * @param {string} srcPath
- * @param {string} dstPath
+ * @type {Processor}
  */
-async function processTS(config, srcPath, dstPath) {
-    const input = readFile(srcPath);
-    const result = ts.transpileModule(input, {
+const processTS = async (config, ref) => {
+    const result = ts.transpileModule(ref.content, {
         compilerOptions: {
             target: ts.ScriptTarget.ES2020,
             module: ts.ModuleKind.ES2020,
@@ -145,52 +143,44 @@ async function processTS(config, srcPath, dstPath) {
         transformers: {
             before: [createDefineDebugTransformer(config.debug)],
         },
-        fileName: srcPath,
+        fileName: refPath(ref),
     });
 
     for (const diagnostic of result.diagnostics) {
         switch (diagnostic.category) {
             case ts.DiagnosticCategory.Message:
             case ts.DiagnosticCategory.Suggestion:
-                console.log("In file %s: %s", diagnostic.messageText);
+                console.log("In file %s: %s", refPath(ref), diagnostic.messageText);
                 break;
             case ts.DiagnosticCategory.Warning:
-                console.warn("In file %s: %s", diagnostic.messageText);
+                console.warn("In file %s: %s", refPath(ref), diagnostic.messageText);
                 break;
             case ts.DiagnosticCategory.Error:
-                console.error("In file %s: %s", diagnostic.messageText);
+                console.error("In file %s: %s", refPath(ref), diagnostic.messageText);
                 break;
         }
     }
 
-    const output = result.outputText;
-    const outputPath = dstPath.replace(/\.ts$/, ".js");
+    const outputBasename = ref.basename.replace(/\.ts$/, ".js");
 
-    try {
-        const result = await terserMinifyJS(output, {
-            compress: true,
-        });
-
-        writeFile(outputPath, result.code);
-    } catch (error) {
-        console.error("In file %s: %s", srcPath, error);
-
-        writeFile(outputPath, output);
-    }
+    const refs = process[".js"](config, { basename: outputBasename, content: result.outputText });
 
     if (config.debug) {
-        writeFile(`${outputPath}.map`, result.sourceMapText);
-        fs.copyFileSync(srcPath, dstPath);
+        return [
+            ...refs,
+            { basename: `${outputBasename}.map`, content: result.sourceMapText },
+            { basename: ref.basename, content: ref.content },
+        ];
     }
-}
+
+    return refs;
+};
 
 /**
- * @param {Config} config
- * @param {string} srcPath
- * @param {string} dstPath
+ * @type {Processor}
  */
-async function processMD(config, srcPath, dstPath) {
-    const input = readFile(srcPath);
+const processMD = async (config, ref) => {
+    const input = ref.content;
 
     const { data, content } = matter(input);
 
@@ -230,10 +220,10 @@ async function processMD(config, srcPath, dstPath) {
 
         writeFile(outputPath, output);
     }
-}
+};
 
 /**
- * @type {Record<string, (config: Config, srcPath: string, dstPath: string) => (void | Promise<void>)>}
+ * @type {Record<string, Processor>}
  */
 const process = {
     ".js": processJS,
@@ -265,7 +255,19 @@ export function processFile(config, srcPath) {
 
     const extname = path.extname(srcPath);
     if (extname in process) {
-        process[extname](config, srcPath, dstPath);
+        const input = {
+            dirname: path.dirname(srcPath),
+            basename: path.basename(srcPath),
+            content: readFile(srcPath),
+        };
+
+        process[extname](config, input).then((refs) => {
+            const dirname = path.dirname(dstPath);
+            for (const ref of refs) {
+                const filename = path.join(dirname, ref.basename);
+                writeFile(filename, ref.content);
+            }
+        });
     } else {
         fs.copyFileSync(srcPath, dstPath);
     }
