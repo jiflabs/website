@@ -71,7 +71,10 @@ function instantiateTemplate(templatePath, global, data, content) {
  * @param {FileReference} ref
  */
 function refPath(ref) {
-    return path.join(ref.dirname, ref.basename);
+    if (ref.dirname) {
+        return path.join(ref.dirname, ref.basename);
+    }
+    return ref.basename;
 }
 
 /**
@@ -87,7 +90,7 @@ const processJS = async (config, ref) => {
         return [{ basename: ref.basename, content: result.code }];
     } catch (error) {
         console.error("In file %s: %s", refPath(ref), error);
-        return [ref];
+        return [{ basename: ref.basename, content: ref.content }];
     }
 };
 
@@ -163,7 +166,11 @@ const processTS = async (config, ref) => {
 
     const outputBasename = ref.basename.replace(/\.ts$/, ".js");
 
-    const refs = process[".js"](config, { basename: outputBasename, content: result.outputText });
+    const refs = await process[".js"](config, {
+        basename: outputBasename,
+        dirname: ref.dirname,
+        content: result.outputText,
+    });
 
     if (config.debug) {
         return [
@@ -180,9 +187,7 @@ const processTS = async (config, ref) => {
  * @type {Processor}
  */
 const processMD = async (config, ref) => {
-    const input = ref.content;
-
-    const { data, content } = matter(input);
+    const { data, content } = matter(ref.content);
 
     const renderer = new Renderer();
 
@@ -194,11 +199,9 @@ const processMD = async (config, ref) => {
     };
     renderer.code = renderer.code.bind(renderer);
 
-    const html = parse(content, { async: false, renderer });
+    const html = await parse(content, { async: true, renderer });
 
-    const template = data.template;
-
-    const templatePath = path.join(config.srcDir, "templates", `${template}.html`);
+    const templatePath = path.join(config.srcDir, "templates", `${data.template}.html`);
 
     const global = (() => {
         const input = readFile(path.join(config.srcDir, "config.yaml"));
@@ -206,20 +209,9 @@ const processMD = async (config, ref) => {
     })();
 
     const output = instantiateTemplate(templatePath, global, data, html);
-    const outputPath = dstPath.replace(/\.md$/, ".html");
+    const outputBasename = ref.basename.replace(/\.md$/, ".html");
 
-    try {
-        const result = await terserMinifyHTML(output, {
-            collapseWhitespace: true,
-            removeComments: true,
-        });
-
-        writeFile(outputPath, result);
-    } catch (error) {
-        console.error("In file %s: %s", srcPath, error);
-
-        writeFile(outputPath, output);
-    }
+    return process[".html"](config, { basename: outputBasename, dirname: ref.dirname, content: output });
 };
 
 /**
@@ -264,7 +256,7 @@ export function processFile(config, srcPath) {
         process[extname](config, input).then((refs) => {
             const dirname = path.dirname(dstPath);
             for (const ref of refs) {
-                const filename = path.join(dirname, ref.basename);
+                const filename = path.join(ref.dirname ?? dirname, ref.basename);
                 writeFile(filename, ref.content);
             }
         });

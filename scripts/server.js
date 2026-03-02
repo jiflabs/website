@@ -126,7 +126,7 @@ function runServerHTTP(config) {
 
             response.writeHead(ok ? 200 : 404, {
                 "content-type": mime.lookup(filename) || "application/octet-stream",
-                "cache-control": config.cache,
+                ...(config.cache ? { "cache-control": config.cache } : {}),
             });
             response.end(data);
         });
@@ -172,7 +172,7 @@ function runServerHTTPS(config) {
             stream.respond({
                 ":status": ok ? 200 : 404,
                 "content-type": mime.lookup(filename) || "application/octet-stream",
-                "cache-control": config.cache,
+                ...(config.cache ? { "cache-control": config.cache } : {}),
             });
             stream.end(data);
         });
@@ -322,7 +322,6 @@ function main(args) {
                 certFile,
                 hostname: hostname ?? "0.0.0.0",
                 port: port ?? "8080",
-                cache: `public, max-age=${5 * 60}, immutable`,
                 publicDir,
                 pagesDir,
                 contentDir,
