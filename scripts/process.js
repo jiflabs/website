@@ -10,23 +10,24 @@ import ts from "typescript";
 import yaml from "yaml";
 
 /**
- * @typedef {{ srcDir: string, dstDir: string, debug: boolean }} Config
+ * @typedef {{ permanent: boolean, url: string }} ServerRedirect
+ * @typedef {{ redirect?: Record<string, ServerRedirect>, global?: Record<string, unknown> }} ServerConfig
+ *
+ * @typedef {{ srcDir: string, dstDir: string, debug: boolean, global?: Record<string, unknown> }} Context
  * @typedef {{ dirname?: string, basename: string, content: string }} FileReference
- * @typedef {(config: Config, ref: FileReference) => Promise<FileReference[]>} Processor
+ * @typedef {(context: Context, ref: FileReference) => Promise<FileReference[]>} Processor
  */
 
 /**
- * @param {string} path
- * @returns {string}
+ * @param {fs.PathLike} path
  */
-const readFile = (path) => fs.readFileSync(path, "utf-8");
+const readFileSync = (path) => fs.readFileSync(path, "utf-8");
 
 /**
- * @param {string} path
- * @param {string} data
- * @returns {void}
+ * @param {fs.PathLike} path
+ * @param {string | NodeJS.ArrayBufferView} data
  */
-const writeFile = (path, data) => fs.writeFileSync(path, data, "utf-8");
+const writeFileSync = (path, data) => fs.writeFileSync(path, data, "utf-8");
 
 /**
  * @param {boolean} debug
@@ -52,7 +53,7 @@ function createDefineDebugTransformer(debug) {
  * @param {string} content
  */
 function instantiateTemplate(templatePath, global, data, content) {
-    let template = readFile(templatePath);
+    let template = readFileSync(templatePath);
 
     template = template.replaceAll("%content%", content);
 
@@ -80,11 +81,14 @@ function refPath(ref) {
 /**
  * @type {Processor}
  */
-const processJS = async (config, ref) => {
+const processJS = async (_context, ref) => {
     try {
         const result = await terserMinifyJS(ref.content, {
             compress: true,
             mangle: {},
+            format: {
+                comments: /sourceMappingURL/,
+            },
         });
 
         return [{ basename: ref.basename, content: result.code }];
@@ -97,7 +101,7 @@ const processJS = async (config, ref) => {
 /**
  * @type {Processor}
  */
-const processCSS = async (config, ref) => {
+const processCSS = async (_context, ref) => {
     const result = new CleanCSS().minify(ref.content);
 
     for (const message of result.errors) {
@@ -114,7 +118,7 @@ const processCSS = async (config, ref) => {
 /**
  * @type {Processor}
  */
-const processHTML = async (config, ref) => {
+const processHTML = async (_context, ref) => {
     try {
         const result = await terserMinifyHTML(ref.content, {
             collapseWhitespace: true,
@@ -131,7 +135,7 @@ const processHTML = async (config, ref) => {
 /**
  * @type {Processor}
  */
-const processTS = async (config, ref) => {
+const processTS = async (context, ref) => {
     const result = ts.transpileModule(ref.content, {
         compilerOptions: {
             target: ts.ScriptTarget.ES2020,
@@ -140,11 +144,11 @@ const processTS = async (config, ref) => {
             moduleResolution: ts.ModuleResolutionKind.Bundler,
             esModuleInterop: false,
             isolatedModules: true,
-            sourceMap: config.debug ?? false,
+            sourceMap: context.debug ?? false,
             strict: true,
         },
         transformers: {
-            before: [createDefineDebugTransformer(config.debug)],
+            before: [createDefineDebugTransformer(context.debug)],
         },
         fileName: refPath(ref),
     });
@@ -166,13 +170,13 @@ const processTS = async (config, ref) => {
 
     const outputBasename = ref.basename.replace(/\.ts$/, ".js");
 
-    const refs = await process[".js"](config, {
+    const refs = await process[".js"](context, {
         basename: outputBasename,
         dirname: ref.dirname,
         content: result.outputText,
     });
 
-    if (config.debug) {
+    if (context.debug) {
         return [
             ...refs,
             { basename: `${outputBasename}.map`, content: result.sourceMapText },
@@ -186,7 +190,7 @@ const processTS = async (config, ref) => {
 /**
  * @type {Processor}
  */
-const processMD = async (config, ref) => {
+const processMD = async (context, ref) => {
     const { data, content } = matter(ref.content);
 
     const renderer = new Renderer();
@@ -201,17 +205,21 @@ const processMD = async (config, ref) => {
 
     const html = await parse(content, { async: true, renderer });
 
-    const templatePath = path.join(config.srcDir, "templates", `${data.template}.html`);
+    const templatePath = path.join(context.srcDir, "templates", `${data.template}.html`);
 
-    const global = (() => {
-        const input = readFile(path.join(config.srcDir, "config.yaml"));
-        return yaml.parse(input);
-    })();
-
-    const output = instantiateTemplate(templatePath, global, data, html);
+    const output = instantiateTemplate(templatePath, context.global ?? {}, data, html);
     const outputBasename = ref.basename.replace(/\.md$/, ".html");
 
-    return process[".html"](config, { basename: outputBasename, dirname: ref.dirname, content: output });
+    return process[".html"](context, { basename: outputBasename, dirname: ref.dirname, content: output });
+};
+
+/**
+ * @type {Processor}
+ */
+const processYAML = async (_context, ref) => {
+    const output = yaml.parse(ref.content);
+    const outputBasename = ref.basename.replace(/\.yaml$/, ".json");
+    return [{ basename: outputBasename, content: JSON.stringify(output) }];
 };
 
 /**
@@ -223,21 +231,42 @@ const process = {
     ".html": processHTML,
     ".ts": processTS,
     ".md": processMD,
+    ".yaml": processYAML,
 };
 
 /**
- * @param {Config} config
+ * @param {Context} context
+ * @returns {ServerConfig}
+ */
+export function processConfig(context) {
+    const inputPath = path.join(context.srcDir, "config.yaml");
+    const input = readFileSync(inputPath);
+
+    try {
+        return yaml.parse(input);
+    } catch (error) {
+        console.error("In file %s: %s", inputPath, error);
+        return {};
+    }
+}
+
+/**
+ * @param {Context} context
  * @param {string} srcPath
  */
-export function processFile(config, srcPath) {
-    const relPath = path.relative(config.srcDir, srcPath);
-    const dstPath = path.join(config.dstDir, relPath);
+export async function processFile(context, srcPath) {
+    const relPath = path.relative(context.srcDir, srcPath);
+    const dstPath = path.join(context.dstDir, relPath);
 
     const src = fs.statSync(srcPath);
 
     if (src.isDirectory()) {
         fs.mkdirSync(dstPath, { recursive: true });
-        fs.readdirSync(srcPath).forEach((file) => processFile(config, path.join(srcPath, file)));
+
+        const files = fs.readdirSync(srcPath);
+        for (const file of files) {
+            processFile(context, path.join(srcPath, file));
+        }
         return;
     }
 
@@ -250,28 +279,28 @@ export function processFile(config, srcPath) {
         const input = {
             dirname: path.dirname(srcPath),
             basename: path.basename(srcPath),
-            content: readFile(srcPath),
+            content: readFileSync(srcPath),
         };
 
-        process[extname](config, input).then((refs) => {
-            const dirname = path.dirname(dstPath);
-            for (const ref of refs) {
-                const filename = path.join(ref.dirname ?? dirname, ref.basename);
-                writeFile(filename, ref.content);
-            }
-        });
+        const refs = await process[extname](context, input);
+
+        const dirname = path.dirname(dstPath);
+        for (const ref of refs) {
+            const filename = path.join(ref.dirname ?? dirname, ref.basename);
+            writeFileSync(filename, ref.content);
+        }
     } else {
         fs.copyFileSync(srcPath, dstPath);
     }
 }
 
 /**
- * @param {Config} config
+ * @param {Context} context
  */
-export function processAll(config) {
-    if (fs.existsSync(config.dstDir)) {
-        fs.rmSync(config.dstDir, { recursive: true, force: true });
+export async function processAll(context) {
+    if (fs.existsSync(context.dstDir)) {
+        fs.rmSync(context.dstDir, { recursive: true, force: true });
     }
 
-    processFile(config, config.srcDir);
+    return processFile(context, context.srcDir);
 }

@@ -1,7 +1,17 @@
 #!/usr/bin/env node
 
 import { parse } from "./param.js";
-import { processAll } from "./process.js";
+import { processAll, processConfig } from "./process.js";
+
+async function build(srcDir, dstDir) {
+    const config = processConfig({ srcDir, dstDir, debug: false, global: {} });
+
+    try {
+        await processAll({ srcDir, dstDir, debug: false, global: config.global });
+    } catch (err) {
+        console.error("Error while processing:", err);
+    }
+}
 
 function main(args) {
     const { "--src-dir": srcDir, "--dst-dir": dstDir } = parse(args, {
@@ -9,7 +19,7 @@ function main(args) {
         "--dst-dir": ["string", true],
     });
 
-    processAll({ srcDir, dstDir, debug: false });
+    build(srcDir, dstDir);
 }
 
 main(process.argv.slice(2));
