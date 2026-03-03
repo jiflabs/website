@@ -14,11 +14,11 @@
     "author": "Felix Schreiber",
     "type": "module",
     "scripts": {
-        "build": "node scripts/build.js --src-dir=src --dst-dir=dst",
-        "start": "node scripts/server.js --mode=production --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
-        "start1": "node scripts/server.js --mode=production --dst-dir=dst",
-        "dev": "node scripts/server.js --mode=development --src-dir=src --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
-        "dev1": "node scripts/server.js --mode=development --src-dir=src --dst-dir=dst",
+        "build": "node scripts/build.ts --src-dir=src --dst-dir=dst",
+        "start": "node scripts/server.ts --mode=production --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
+        "start1": "node scripts/server.ts --mode=production --dst-dir=dst",
+        "dev": "node scripts/server.ts --mode=development --src-dir=src --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
+        "dev1": "node scripts/server.ts --mode=development --src-dir=src --dst-dir=dst",
         "format": "npx prettier . --write"
     },
     "engines": {
@@ -38,5 +38,12 @@
         "typescript": "^5.9.3",
         "ws": "^8.19.0",
         "yaml": "^2.8.2"
+    },
+    "devDependencies": {
+        "@types/clean-css": "^4.2.11",
+        "@types/html-minifier-terser": "^7.0.2",
+        "@types/mime-types": "^3.0.1",
+        "@types/node": "^25.3.3",
+        "@types/ws": "^8.18.1"
     }
 }

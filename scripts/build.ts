@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { parse } from "./param.js";
-import { processAll, processConfig } from "./process.js";
+import { parse } from "./param.ts";
+import { processAll, processConfig } from "./process.ts";
 
-async function build(srcDir, dstDir) {
+async function build(srcDir: string, dstDir: string) {
     const config = processConfig({ srcDir, dstDir, debug: false, global: {} });
 
     try {
@@ -13,11 +13,11 @@ async function build(srcDir, dstDir) {
     }
 }
 
-function main(args) {
+function main(args: string[]) {
     const { "--src-dir": srcDir, "--dst-dir": dstDir } = parse(args, {
         "--src-dir": ["string", true],
         "--dst-dir": ["string", true],
-    });
+    } as const);
 
     build(srcDir, dstDir);
 }

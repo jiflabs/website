@@ -2,57 +2,67 @@ import CleanCSS from "clean-css";
 import matter from "gray-matter";
 import hljs from "highlight.js";
 import { minify as terserMinifyHTML } from "html-minifier-terser";
-import { parse, Renderer } from "marked";
+import { Renderer, parse } from "marked";
 import fs from "node:fs";
 import path from "node:path";
 import { minify as terserMinifyJS } from "terser";
 import ts from "typescript";
 import yaml from "yaml";
 
-/**
- * @typedef {{ permanent: boolean, url: string }} ServerRedirect
- * @typedef {{ redirect?: Record<string, ServerRedirect>, global?: Record<string, unknown> }} ServerConfig
- *
- * @typedef {{ srcDir: string, dstDir: string, debug: boolean, global?: Record<string, unknown> }} Context
- * @typedef {{ dirname?: string, basename: string, content: string }} FileReference
- * @typedef {(context: Context, ref: FileReference) => Promise<FileReference[]>} Processor
- */
+interface ServerRedirect {
+    permanent: boolean;
+    url: string;
+}
 
-/**
- * @param {fs.PathLike} path
- */
-const readFileSync = (path) => fs.readFileSync(path, "utf-8");
+interface ServerConfig {
+    redirect?: Record<string, ServerRedirect>;
+    global?: Record<string, string>;
+}
 
-/**
- * @param {fs.PathLike} path
- * @param {string | NodeJS.ArrayBufferView} data
- */
-const writeFileSync = (path, data) => fs.writeFileSync(path, data, "utf-8");
+interface Context {
+    srcDir: string;
+    dstDir: string;
+    debug: boolean;
+    global?: Record<string, string>;
+}
 
-/**
- * @param {boolean} debug
- * @returns {ts.CustomTransformerFactory}
- */
-function createDefineDebugTransformer(debug) {
+interface FileReference {
+    dirname?: string;
+    basename: string;
+    content: string;
+}
+
+type Processor = (context: Context, ref: FileReference) => Promise<FileReference[]>;
+
+const readFileSync = (path: fs.PathLike) => fs.readFileSync(path, "utf-8");
+
+const writeFileSync = (path: fs.PathLike, data: string | NodeJS.ArrayBufferView) =>
+    fs.writeFileSync(path, data, "utf-8");
+
+function createDefineDebugTransformer(debug: boolean): ts.CustomTransformerFactory {
     return (context) => {
-        const visitor = (node) => {
+        const visitor: ts.Visitor = (node) => {
             if (ts.isIdentifier(node) && node.text === "__DEBUG__") {
                 return debug ? ts.factory.createTrue() : ts.factory.createFalse();
             }
             return ts.visitEachChild(node, visitor, context);
         };
 
-        return (node) => ts.visitNode(node, visitor);
+        const transformer = (node: ts.Node) => ts.visitNode(node, visitor);
+
+        return {
+            transformBundle: (bundle) => bundle,
+            transformSourceFile: (file) => file,
+        };
     };
 }
 
-/**
- * @param {string} templatePath
- * @param {Record<string, unknown>} global
- * @param {Record<string, unknown>} data
- * @param {string} content
- */
-function instantiateTemplate(templatePath, global, data, content) {
+function instantiateTemplate(
+    templatePath: string,
+    global: Record<string, string>,
+    data: Record<string, string>,
+    content: string,
+) {
     let template = readFileSync(templatePath);
 
     template = template.replaceAll("%content%", content);
@@ -68,20 +78,14 @@ function instantiateTemplate(templatePath, global, data, content) {
     return template;
 }
 
-/**
- * @param {FileReference} ref
- */
-function refPath(ref) {
+function refPath(ref: FileReference) {
     if (ref.dirname) {
         return path.join(ref.dirname, ref.basename);
     }
     return ref.basename;
 }
 
-/**
- * @type {Processor}
- */
-const processJS = async (_context, ref) => {
+const processJS: Processor = async (_context, ref) => {
     try {
         const result = await terserMinifyJS(ref.content, {
             compress: true,
@@ -91,17 +95,14 @@ const processJS = async (_context, ref) => {
             },
         });
 
-        return [{ basename: ref.basename, content: result.code }];
+        return [{ basename: ref.basename, content: result.code ?? "" }];
     } catch (error) {
         console.error("In file %s: %s", refPath(ref), error);
         return [{ basename: ref.basename, content: ref.content }];
     }
 };
 
-/**
- * @type {Processor}
- */
-const processCSS = async (_context, ref) => {
+const processCSS: Processor = async (_context, ref) => {
     const result = new CleanCSS().minify(ref.content);
 
     for (const message of result.errors) {
@@ -115,10 +116,7 @@ const processCSS = async (_context, ref) => {
     return [{ basename: ref.basename, content: result.styles }];
 };
 
-/**
- * @type {Processor}
- */
-const processHTML = async (_context, ref) => {
+const processHTML: Processor = async (_context, ref) => {
     try {
         const result = await terserMinifyHTML(ref.content, {
             collapseWhitespace: true,
@@ -132,10 +130,7 @@ const processHTML = async (_context, ref) => {
     }
 };
 
-/**
- * @type {Processor}
- */
-const processTS = async (context, ref) => {
+const processTS: Processor = async (context, ref) => {
     const result = ts.transpileModule(ref.content, {
         compilerOptions: {
             target: ts.ScriptTarget.ES2020,
@@ -153,7 +148,7 @@ const processTS = async (context, ref) => {
         fileName: refPath(ref),
     });
 
-    for (const diagnostic of result.diagnostics) {
+    for (const diagnostic of result.diagnostics ?? []) {
         switch (diagnostic.category) {
             case ts.DiagnosticCategory.Message:
             case ts.DiagnosticCategory.Suggestion:
@@ -179,7 +174,7 @@ const processTS = async (context, ref) => {
     if (context.debug) {
         return [
             ...refs,
-            { basename: `${outputBasename}.map`, content: result.sourceMapText },
+            { basename: `${outputBasename}.map`, content: result.sourceMapText ?? "" },
             { basename: ref.basename, content: ref.content },
         ];
     }
@@ -187,10 +182,7 @@ const processTS = async (context, ref) => {
     return refs;
 };
 
-/**
- * @type {Processor}
- */
-const processMD = async (context, ref) => {
+const processMD: Processor = async (context, ref) => {
     const { data, content } = matter(ref.content);
 
     const renderer = new Renderer();
@@ -213,19 +205,13 @@ const processMD = async (context, ref) => {
     return process[".html"](context, { basename: outputBasename, dirname: ref.dirname, content: output });
 };
 
-/**
- * @type {Processor}
- */
-const processYAML = async (_context, ref) => {
+const processYAML: Processor = async (_context, ref) => {
     const output = yaml.parse(ref.content);
     const outputBasename = ref.basename.replace(/\.yaml$/, ".json");
     return [{ basename: outputBasename, content: JSON.stringify(output) }];
 };
 
-/**
- * @type {Record<string, Processor>}
- */
-const process = {
+const process: Record<string, Processor> = {
     ".js": processJS,
     ".css": processCSS,
     ".html": processHTML,
@@ -234,11 +220,7 @@ const process = {
     ".yaml": processYAML,
 };
 
-/**
- * @param {Context} context
- * @returns {ServerConfig}
- */
-export function processConfig(context) {
+export function processConfig(context: Context): ServerConfig {
     const inputPath = path.join(context.srcDir, "config.yaml");
     const input = readFileSync(inputPath);
 
@@ -250,11 +232,7 @@ export function processConfig(context) {
     }
 }
 
-/**
- * @param {Context} context
- * @param {string} srcPath
- */
-export async function processFile(context, srcPath) {
+export async function processFile(context: Context, srcPath: string) {
     const relPath = path.relative(context.srcDir, srcPath);
     const dstPath = path.join(context.dstDir, relPath);
 
@@ -294,10 +272,7 @@ export async function processFile(context, srcPath) {
     }
 }
 
-/**
- * @param {Context} context
- */
-export async function processAll(context) {
+export async function processAll(context: Context) {
     if (fs.existsSync(context.dstDir)) {
         fs.rmSync(context.dstDir, { recursive: true, force: true });
     }
