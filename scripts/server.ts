@@ -313,13 +313,13 @@ function runHTTPServer(config: ServerConfig) {
     return server;
 }
 
-async function handleFileChange(srcDir: string, dstDir: string, filename: string) {
+function handleFileChange(srcDir: string, dstDir: string, filename: string) {
     if (filename === path.join(srcDir, "config.yaml")) {
-        await processAll({ srcDir: srcDir, dstDir: dstDir, debug: true });
+        processAll({ srcDir: srcDir, dstDir: dstDir, debug: true });
         return true;
     }
 
-    await processFile({ srcDir: srcDir, dstDir: dstDir, debug: true }, filename);
+    processFile({ srcDir: srcDir, dstDir: dstDir, debug: true }, filename);
     return false;
 }
 
@@ -422,16 +422,15 @@ function main(args: string[]) {
                 return;
             }
 
-            handleFileChange(srcDir, dstDir, filename)
-                .then((full) => {
-                    broadcastReload();
-                    if (full) {
-                        console.log("TODO: config change, full reload");
-                    }
-                })
-                .catch((err) => {
-                    console.error("Error while processing:", err);
-                });
+            try {
+                const full = handleFileChange(srcDir, dstDir, filename);
+                broadcastReload();
+                if (full) {
+                    console.log("TODO: config change, full reload");
+                }
+            } catch (err) {
+                console.error("Error while processing:", err);
+            }
         });
         return;
     }

@@ -3,11 +3,11 @@
 import { parse } from "./param.ts";
 import { processAll, processConfig } from "./process.ts";
 
-async function build(srcDir: string, dstDir: string) {
+function build(srcDir: string, dstDir: string) {
     const config = processConfig({ srcDir, dstDir, debug: false, global: {} });
 
     try {
-        await processAll({ srcDir, dstDir, debug: false, global: config.global });
+        processAll({ srcDir, dstDir, debug: false, global: config.global });
     } catch (err) {
         console.error("Error while processing:", err);
     }

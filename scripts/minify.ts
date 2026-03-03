@@ -1,9 +1,7 @@
-import { parse as parseJS } from "./parser/js.ts";
+import { parse as parseJS, compress as compressJS } from "./parser/js.ts";
 
 export function minifyJS(text: string) {
-    const tree = parseJS(text);
-    console.dir(tree, { depth: null });
-    return text;
+    return parseJS(text).map(compressJS).join(";");
 }
 
 export function minifyCSS(text: string) {
