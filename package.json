@@ -26,24 +26,19 @@
     },
     "dependencies": {
         "chokidar": "^5.0.0",
-        "clean-css": "^5.3.3",
         "gray-matter": "^4.0.3",
         "highlight.js": "^11.11.1",
-        "html-minifier-terser": "^7.2.0",
         "marked": "^17.0.3",
         "mime-types": "^3.0.2",
-        "prettier": "^3.8.1",
-        "terser": "^5.46.0",
         "ts-node": "^10.9.2",
         "typescript": "^5.9.3",
         "ws": "^8.19.0",
         "yaml": "^2.8.2"
     },
     "devDependencies": {
-        "@types/clean-css": "^4.2.11",
-        "@types/html-minifier-terser": "^7.0.2",
         "@types/mime-types": "^3.0.1",
         "@types/node": "^25.3.3",
-        "@types/ws": "^8.18.1"
+        "@types/ws": "^8.18.1",
+        "prettier": "^3.8.1"
     }
 }

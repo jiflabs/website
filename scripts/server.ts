@@ -263,7 +263,8 @@ function runHTTPServer(config: ServerConfig) {
 
     server.handle(async (request) => {
         const method = request.method;
-        const pathname = request.url;
+        const url = new URL(request.url);
+        const pathname = url.pathname;
 
         console.log("%s %s", method, pathname);
 
