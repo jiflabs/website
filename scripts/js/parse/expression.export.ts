@@ -1,13 +1,13 @@
 import { at, expect, get, skip } from "../context.ts";
 
-import parseExpression from "./expression.ts";
 import parseClassExpression from "./expression.class.ts";
 import parseFunctionExpression from "./expression.function.ts";
+import parseExpression from "./expression.ts";
 import parseVariableExpression from "./expression.variable.ts";
 
-import type { Context, Expression } from "../types.ts";
+import type { Context, ExportExpression } from "../types.ts";
 
-export function parseExportExpression(context: Context): Expression {
+export default function parseExportExpression(context: Context): ExportExpression {
     expect(context, "symbol", { value: "export" });
 
     const token = context.token;
@@ -34,6 +34,8 @@ export function parseExportExpression(context: Context): Expression {
 
                 expression = parseExpression(context, false);
 
+                expect(context, "line");
+
                 return { type: "export.default", expression };
 
             default:
@@ -44,6 +46,8 @@ export function parseExportExpression(context: Context): Expression {
                 expect(context, "symbol", { value: "from" });
 
                 const from = expect(context, "string").value;
+
+                expect(context, "line");
 
                 return { type: "export.forward.default", name, from };
         }
@@ -72,8 +76,12 @@ export function parseExportExpression(context: Context): Expression {
         if (skip(context, "symbol", { value: "from" })) {
             const from = expect(context, "string").value;
 
+            expect(context, "line");
+
             return { type: "export.forward", symbols, from };
         }
+
+        expect(context, "line");
 
         return { type: "export.named.multi", symbols };
     }
@@ -82,6 +90,8 @@ export function parseExportExpression(context: Context): Expression {
     expect(context, "symbol", { value: "from" });
 
     const from = expect(context, "string").value;
+
+    expect(context, "line");
 
     return { type: "export.forward.all", from };
 }

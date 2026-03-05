@@ -1,10 +1,11 @@
-import { parseBinding } from "../binding.ts";
 import { at, expect } from "../context.ts";
-import { parseTopLevelExpression } from "../expression.ts";
 
-import type { Binding, Context, Expression } from "../types.ts";
+import parseBinding from "./binding.ts";
+import parseScopeExpression from "./expression.scope.ts";
 
-export default function parseFunctionExpression(context: Context, top: boolean): Expression {
+import type { Binding, Context, FunctionExpression } from "../types.ts";
+
+export default function parseFunctionExpression(context: Context, top: boolean): FunctionExpression {
     expect(context, "symbol", { value: "function" });
 
     let name;
@@ -24,7 +25,7 @@ export default function parseFunctionExpression(context: Context, top: boolean):
     }
     expect(context, "other", { value: ")" });
 
-    const expression = parseTopLevelExpression(context);
+    const expression = parseScopeExpression(context);
 
     return { type: "expression.function", name, args, expression };
 }

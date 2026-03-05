@@ -217,7 +217,7 @@ const processTS: Processor = (ref, context) => {
 
     const outputBasename = ref.basename.replace(/\.ts$/, ".js");
 
-    const refs = PROC[".js"]({ basename: outputBasename, dirname: ref.dirname, content: result.outputText }, context);
+    const refs = PROC[".js"]({ basename: outputBasename, content: result.outputText }, context);
 
     if (context?.debug) {
         return [
@@ -250,7 +250,7 @@ const processMD: Processor = (ref, context) => {
     const output = instantiateTemplate(templatePath, context?.global ?? {}, data, html);
     const outputBasename = ref.basename.replace(/\.md$/, ".html");
 
-    return PROC[".html"]({ basename: outputBasename, dirname: ref.dirname, content: output }, context);
+    return PROC[".html"]({ basename: outputBasename, content: output }, context);
 };
 
 const processYAML: Processor = (ref) => {

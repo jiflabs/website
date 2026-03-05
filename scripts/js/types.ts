@@ -101,70 +101,74 @@ export interface Context {
     token: Token;
 }
 
-export interface NamedExport {
+export interface NamedExportExpression {
     type: "export.named";
     expression: Expression;
 }
 
-export interface NamedMultiExport {
+export interface NamedMultiExportExpression {
     type: "export.named.multi";
     symbols: Record<string, string>;
 }
 
-export interface DefaultExport {
+export interface DefaultExportExpression {
     type: "export.default";
     expression: Expression;
 }
 
-export interface ForwardExport {
+export interface ForwardExportExpression {
     type: "export.forward";
     symbols: Record<string, string>;
     from: string;
 }
 
-export interface ForwardAllExport {
+export interface ForwardAllExportExpression {
     type: "export.forward.all";
     from: string;
 }
 
-export interface ForwardDefaultExport {
+export interface ForwardDefaultExportExpression {
     type: "export.forward.default";
     name: string;
     from: string;
 }
 
-export type Export =
-    | NamedExport
-    | NamedMultiExport
-    | DefaultExport
-    | ForwardExport
-    | ForwardAllExport
-    | ForwardDefaultExport;
+export type ExportExpression =
+    | NamedExportExpression
+    | NamedMultiExportExpression
+    | DefaultExportExpression
+    | ForwardExportExpression
+    | ForwardAllExportExpression
+    | ForwardDefaultExportExpression;
 
-export interface NamedImport {
+export interface NamedImportExpression {
     type: "import.named";
     symbols: Record<string, string>;
     from: string;
 }
 
-export interface DefaultImport {
+export interface DefaultImportExpression {
     type: "import.default";
     name: string;
     from: string;
 }
 
-export interface NamespaceImport {
+export interface NamespaceImportExpression {
     type: "import.namespace";
     as: string;
     from: string;
 }
 
-export interface SideEffectImport {
+export interface SideEffectImportExpression {
     type: "import.side-effect";
     from: string;
 }
 
-export type Import = NamedImport | DefaultImport | NamespaceImport | SideEffectImport;
+export type ImportExpression =
+    | NamedImportExpression
+    | DefaultImportExpression
+    | NamespaceImportExpression
+    | SideEffectImportExpression;
 
 export interface SymbolLiteral {
     type: "literal.symbol";
@@ -331,6 +335,25 @@ export interface TaggedExpression {
     expressions: Expression[];
 }
 
+export interface BreakExpression {
+    type: "expression.break";
+}
+
+export interface ContinueExpression {
+    type: "expression.continue";
+}
+
+export interface SwitchCase {
+    match?: Expression;
+    expressions: Expression[];
+}
+
+export interface SwitchExpression {
+    type: "expression.switch";
+    condition: Expression;
+    cases: SwitchCase[];
+}
+
 export interface ObjectBinding {
     type: "binding.object";
     entries: Record<string, Binding>;
@@ -349,8 +372,8 @@ export interface CollectBinding {
 export type Binding = string | ObjectBinding | ArrayBinding | CollectBinding;
 
 export type Expression =
-    | Export
-    | Import
+    | ExportExpression
+    | ImportExpression
     | ParenExpression
     | SymbolLiteral
     | StringLiteral
@@ -375,4 +398,7 @@ export type Expression =
     | AwaitExpression
     | ObjectExpression
     | ArrayExpression
-    | TaggedExpression;
+    | TaggedExpression
+    | BreakExpression
+    | ContinueExpression
+    | SwitchExpression;

@@ -1,5 +1,3 @@
-import { get } from "./context.ts";
-import { parseExpression } from "./expression.ts";
 import {
     ARROW_OPERATOR,
     ASSIGN_OPERATOR,
@@ -9,6 +7,10 @@ import {
     TERNARY_OPERATOR,
     UNARY_OPERATOR,
 } from "./constants.ts";
+import { get } from "./context.ts";
+
+import parseExpression from "./parse/expression.ts";
+
 import type { Context, Expression, Token } from "./types.ts";
 
 function isSpace(c: string) {

@@ -1,7 +1,7 @@
-import { parseBinding } from "../binding.ts";
 import { at, expect, skip } from "../context.ts";
-import { parseTopLevelExpression } from "../expression.ts";
 
+import parseBinding from "./binding.ts";
+import parseScopeExpression from "./expression.scope.ts";
 import parseExpression from "./expression.ts";
 
 import type { Binding, Context, Expression } from "../types.ts";
@@ -26,7 +26,7 @@ export default function parseArrowFunctionExpression(context: Context): Expressi
 
     let expression;
     if (at(context, "other", { value: "{" })) {
-        expression = parseTopLevelExpression(context);
+        expression = parseScopeExpression(context);
     } else {
         expression = parseExpression(context, false);
     }

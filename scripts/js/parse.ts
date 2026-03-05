@@ -1,9 +1,12 @@
 import { get, skip } from "./context.ts";
-import { parseExportExpression, parseImportExpression, parseTopLevelExpression } from "./expression.ts";
+
+import parseExportExpression from "./parse/expression.export.ts";
+import parseImportExpression from "./parse/expression.import.ts";
+import parseTopLevelExpression from "./parse/expression.top-level.ts";
 
 import type { Context, Expression } from "./types.ts";
 
-export default function parse(text: string) {
+export default function parse(text: string): Expression[] {
     const expressions: Expression[] = [];
 
     const context: Context = {
@@ -36,7 +39,7 @@ export default function parse(text: string) {
             }
         }
 
-        expressions.push(parseTopLevelExpression(context));
+        expressions.push(parseTopLevelExpression(context, true));
     }
 
     return expressions;

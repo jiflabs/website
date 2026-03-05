@@ -2,9 +2,9 @@ import { expect, skip } from "../context.ts";
 
 import parseExpression from "./expression.ts";
 
-import type { Context, Expression } from "../types.ts";
+import type { Context, Expression, VariableExpression } from "../types.ts";
 
-export default function parseVariableExpression(context: Context): Expression {
+export default function parseVariableExpression(context: Context): VariableExpression {
     const token = expect(context, "symbol");
 
     if (token.value !== "var" && token.value !== "let" && token.value !== "const") {
