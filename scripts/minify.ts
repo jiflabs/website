@@ -30,11 +30,7 @@ export function minifyHTML(text: string) {
         (_, attr, css) => `<style ${attr}>${minifyCSS(css)}</style>`,
     );
 
-    text = text.replace(/<pre\b[^>]*>[\s\S]*?<\/pre>|(\s+)/g, (substring) =>
-        substring.startsWith("<pre") ? substring : " ",
-    );
-
-    text = text.replace(/>\s+</g, "><");
+    text = text.replace(/<pre\b[^>]*>[\s\S]*?<\/pre>|(\s+)/g, (s) => (s.startsWith("<pre") ? s : " "));
 
     return text.trim();
 }
