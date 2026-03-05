@@ -49,5 +49,5 @@ export default function parseSwitchExpression(context: Context): SwitchExpressio
 
     expect(context, "other", { value: "}" });
 
-    return { type: "expression.switch", condition, cases };
+    return { type: "switch", condition, cases };
 }

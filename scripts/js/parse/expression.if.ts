@@ -18,10 +18,10 @@ export default function parseIfExpression(context: Context): IfExpression {
     while (skip(context, "line"));
 
     if (!skip(context, "symbol", { value: "else" })) {
-        return { type: "expression.if", condition, then };
+        return { type: "if", condition, then };
     }
 
     const else_ = parseTopLevelExpression(context, true);
 
-    return { type: "expression.if", condition, then, else_ };
+    return { type: "if", condition, then, else_ };
 }

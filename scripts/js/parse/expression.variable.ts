@@ -1,29 +1,30 @@
-import { expect, skip } from "../context.ts";
+import { error, expect, skip } from "../context.ts";
 
+import parseBinding from "./binding.ts";
 import parseExpression from "./expression.ts";
 
-import type { Context, Expression, VariableExpression } from "../types.ts";
+import type { Context, VariableDeclaration, VariableExpression } from "../types.ts";
 
 export default function parseVariableExpression(context: Context): VariableExpression {
     const token = expect(context, "symbol");
 
     if (token.value !== "var" && token.value !== "let" && token.value !== "const") {
-        throw new Error(`expect symbol var, let or const <---> found ${JSON.stringify(token)}`);
+        error(context.text, context.pos, `expect symbol var, let or const <---> found ${JSON.stringify(token)}`);
     }
 
     const mode = token.value;
 
-    const declarations: { name: string; value?: Expression }[] = [];
+    const declarations: VariableDeclaration[] = [];
     do {
-        const name = expect(context, "symbol").value;
+        const binding = parseBinding(context);
 
         let value;
         if (skip(context, "operator.assign", { value: "=" })) {
             value = parseExpression(context, false);
         }
 
-        declarations.push({ name, value });
+        declarations.push({ binding, value });
     } while (skip(context, "operator.comma", { value: "," }));
 
-    return { type: "expression.variable", mode, declarations };
+    return { type: "variable", mode, declarations };
 }

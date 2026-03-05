@@ -23,5 +23,5 @@ export default function parseObjectBinding(context: Context): ObjectBinding {
     }
     expect(context, "other", { value: "}" });
 
-    return { type: "binding.object", entries };
+    return { type: "object", entries };
 }

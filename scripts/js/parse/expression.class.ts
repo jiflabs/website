@@ -70,5 +70,5 @@ export default function parseClassExpression(context: Context): ClassExpression 
 
     expect(context, "other", { value: "}" });
 
-    return { type: "expression.class", name, extends_, fields };
+    return { type: "class", name, extends_, fields };
 }

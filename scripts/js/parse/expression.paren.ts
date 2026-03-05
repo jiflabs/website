@@ -28,5 +28,5 @@ export default function parseParenExpression(context: Context): Expression {
         return parseArrowFunctionExpression(context);
     }
 
-    return { type: "expression.paren", expression };
+    return { type: "parenthesis", expression };
 }

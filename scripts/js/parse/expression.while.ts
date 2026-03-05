@@ -15,5 +15,5 @@ export default function parseWhileExpression(context: Context): WhileExpression 
 
     const expression = parseTopLevelExpression(context, true);
 
-    return { type: "expression.while", condition, expression };
+    return { type: "while", condition, expression };
 }

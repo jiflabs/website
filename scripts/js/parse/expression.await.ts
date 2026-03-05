@@ -9,5 +9,5 @@ export default function parseAwaitExpression(context: Context): Expression {
 
     const expression = parseOperandExpression(context);
 
-    return { type: "expression.await", expression };
+    return { type: "await", expression };
 }

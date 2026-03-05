@@ -17,5 +17,5 @@ export default function parseCallExpression(context: Context, callee: Expression
     }
     expect(context, "other", { value: ")" });
 
-    return { type: "expression.call", callee, args };
+    return { type: "call", callee, args };
 }

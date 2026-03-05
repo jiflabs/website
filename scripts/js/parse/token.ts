@@ -6,12 +6,12 @@ import {
     OPERATOR_STATE,
     TERNARY_OPERATOR,
     UNARY_OPERATOR,
-} from "./constants.ts";
-import { get } from "./context.ts";
+} from "../constants.ts";
+import { get } from "../context.ts";
 
-import parseExpression from "./parse/expression.ts";
+import parseExpression from "./expression.ts";
 
-import type { Context, Expression, Token } from "./types.ts";
+import type { Context, Expression, Token } from "../types.ts";
 
 function isSpace(c: string) {
     return /^\s$/.test(c);
@@ -37,7 +37,7 @@ function isWord(c: string) {
     return /^[a-zA-Z_]$/.test(c);
 }
 
-export function parseToken(text: string, pos: number, line: boolean): [Token, number] {
+export default function parseToken(text: string, pos: number, line: boolean): [Token, number] {
     let state = "none";
 
     let value = "";
@@ -77,10 +77,20 @@ export function parseToken(text: string, pos: number, line: boolean): [Token, nu
                         pos++;
                         break;
 
+                    case "/":
+                        if (text[pos + 1] === "/") {
+                            state = "comment.line";
+                            pos += 2;
+                            break;
+                        }
+                        if (text[pos + 1] === "*") {
+                            state = "comment.block";
+                            pos += 2;
+                            break;
+                        }
                     case "+":
                     case "-":
                     case "*":
-                    case "/":
                     case "%":
                     case "!":
                     case "~":
@@ -98,11 +108,11 @@ export function parseToken(text: string, pos: number, line: boolean): [Token, nu
                         break;
 
                     case ";":
-                        return [{ type: "line" }, pos + 1];
+                        return [{ type: "line", value: ";" }, pos + 1];
 
                     default:
                         if (line && c === "\n") {
-                            return [{ type: "line" }, pos + 1];
+                            return [{ type: "line", value: "\n" }, pos + 1];
                         }
 
                         if (isSpace(c)) {
@@ -250,6 +260,22 @@ export function parseToken(text: string, pos: number, line: boolean): [Token, nu
                 }
 
                 return [{ type: "other", value }, pos];
+
+            case "comment.line":
+                if (c !== "\n") {
+                    pos++;
+                    break;
+                }
+                state = "none";
+                break;
+
+            case "comment.block":
+                if (c !== "*" || text[pos + 1] !== "/") {
+                    pos++;
+                    break;
+                }
+                state = "none";
+                break;
         }
     }
 

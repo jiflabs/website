@@ -7,5 +7,5 @@ export default function parseMemberExpression(context: Context, object: Expressi
 
     const member = expect(context, "symbol").value;
 
-    return { type: "expression.member", object, member };
+    return { type: "member", object, member };
 }

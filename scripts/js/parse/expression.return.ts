@@ -8,10 +8,10 @@ export default function parseReturnExpression(context: Context): ReturnExpressio
     expect(context, "symbol", { value: "return" });
 
     if (at(context, "line")) {
-        return { type: "expression.return" };
+        return { type: "return" };
     }
 
     const expression = parseExpression(context, true);
 
-    return { type: "expression.return", expression };
+    return { type: "return", expression };
 }

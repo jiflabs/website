@@ -20,13 +20,21 @@ export function minifyCSS(text: string) {
 export function minifyHTML(text: string) {
     text = text.replace(/<!--[\s\S]*?-->/g, "");
 
-    text = text.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (_, js) => `<script>${minifyJS(js)}</script>`);
+    text = text.replace(
+        /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
+        (_, attr, js) => `<script ${attr}>${minifyJS(js)}</script>`,
+    );
 
-    text = text.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => `<style>${minifyCSS(css)}</style>`);
+    text = text.replace(
+        /<style\b([^>]*)>([\s\S]*?)<\/style>/gi,
+        (_, attr, css) => `<style ${attr}>${minifyCSS(css)}</style>`,
+    );
 
-    text = text.replace(/\s+/g, " ");
+    text = text.replace(/<pre\b[^>]*>[\s\S]*?<\/pre>|(\s+)/g, (substring) =>
+        substring.startsWith("<pre") ? substring : " ",
+    );
 
-    text = text.replace(/\s*(>)(<)\s*/g, "$1$2");
+    text = text.replace(/>\s+</g, "><");
 
     return text.trim();
 }

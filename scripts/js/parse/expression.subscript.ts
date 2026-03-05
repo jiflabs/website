@@ -1,5 +1,5 @@
 import { expect } from "../context.ts";
-import { parseToken } from "../token.ts";
+import parseToken from "./token.ts";
 
 import parseExpression from "./expression.ts";
 
@@ -12,13 +12,13 @@ export default function parseSubscriptExpression(context: Context, object: Expre
 
     expect(context, "other", { value: "]" });
 
-    if (key.type === "literal.string") {
+    if (key.type === "string") {
         const member = key.value;
         const [tok] = parseToken(member, 0, false);
         if (tok.type === "symbol" && tok.value === member) {
-            return { type: "expression.member", object, member };
+            return { type: "member", object, member };
         }
     }
 
-    return { type: "expression.subscript", object, key };
+    return { type: "subscript", object, key };
 }

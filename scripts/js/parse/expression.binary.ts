@@ -32,7 +32,7 @@ export default function parseBinaryExpression(context: Context, left: Expression
             right = parseBinaryExpression(context, right, pre + (PRECEDENCE[context.token.value] > pre ? 1 : 0));
         }
 
-        left = { type: "expression.binary", left, right, operator };
+        left = { type: "binary", left, right, operator };
     }
     return left;
 }

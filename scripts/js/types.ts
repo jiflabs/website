@@ -13,6 +13,7 @@ export interface EmptyToken {
 
 export interface LineToken {
     type: "line";
+    value: ";" | "\n";
 }
 
 export interface SymbolToken {
@@ -101,6 +102,23 @@ export interface Context {
     token: Token;
 }
 
+export interface ObjectBinding {
+    type: "object";
+    entries: Record<string, Binding>;
+}
+
+export interface ArrayBinding {
+    type: "array";
+    entries: Binding[];
+}
+
+export interface CollectBinding {
+    type: "collect";
+    name: string;
+}
+
+export type Binding = string | ObjectBinding | ArrayBinding | CollectBinding;
+
 export interface NamedExportExpression {
     type: "export.named";
     expression: Expression;
@@ -170,91 +188,91 @@ export type ImportExpression =
     | NamespaceImportExpression
     | SideEffectImportExpression;
 
-export interface SymbolLiteral {
-    type: "literal.symbol";
+export interface SymbolExpression {
+    type: "symbol";
     value: string;
 }
 
-export interface StringLiteral {
-    type: "literal.string";
+export interface StringExpression {
+    type: "string";
     value: string;
 }
 
-export interface NumberLiteral {
-    type: "literal.number";
+export interface NumberExpression {
+    type: "number";
     value: number;
 }
 
-export interface TemplateLiteral {
-    type: "literal.template";
+export interface TemplateExpression {
+    type: "template";
     strings: string[];
     expressions: Expression[];
 }
 
-export interface ParenExpression {
-    type: "expression.paren";
+export interface ParenthesisExpression {
+    type: "parenthesis";
     expression: Expression;
 }
 
 export interface ArrowFunctionExpression {
-    type: "expression.function.arrow";
+    type: "function.arrow";
     args: Binding[];
     expression: Expression;
 }
 
 export interface BinaryExpression {
-    type: "expression.binary";
+    type: "binary";
     left: Expression;
     right: Expression;
     operator: string;
 }
 
 export interface UnaryExpression {
-    type: "expression.unary";
+    type: "unary";
     operand: Expression;
     operator: string;
     prefix: boolean;
 }
 
 export interface CallExpression {
-    type: "expression.call";
+    type: "call";
     callee: Expression;
     args: Expression[];
 }
 
 export interface MemberExpression {
-    type: "expression.member";
+    type: "member";
     object: Expression;
     member: string;
 }
 
 export interface SubscriptExpression {
-    type: "expression.subscript";
+    type: "subscript";
     object: Expression;
     key: Expression;
 }
 
 export interface IfExpression {
-    type: "expression.if";
+    type: "if";
     condition: Expression;
     then: Expression;
     else_?: Expression;
 }
 
 export interface WhileExpression {
-    type: "expression.while";
+    type: "while";
     condition: Expression;
     expression: Expression;
 }
 
 export interface DoExpression {
-    type: "expression.do";
+    type: "do";
     condition: Expression;
     expression: Expression;
 }
 
 export interface TryExpression {
-    type: "expression.try";
+    type: "try";
     expression: Expression;
     name?: string;
     catchBlock: Expression;
@@ -262,19 +280,24 @@ export interface TryExpression {
 }
 
 export interface ReturnExpression {
-    type: "expression.return";
+    type: "return";
     expression?: Expression;
 }
 
 export interface ScopeExpression {
-    type: "expression.scope";
+    type: "scope";
     expressions: Expression[];
 }
 
+export interface VariableDeclaration {
+    binding: Binding;
+    value?: Expression;
+}
+
 export interface VariableExpression {
-    type: "expression.variable";
+    type: "variable";
     mode: "var" | "let" | "const";
-    declarations: { name: string; value?: Expression }[];
+    declarations: VariableDeclaration[];
 }
 
 export interface ValueClassField {
@@ -294,53 +317,51 @@ export interface FunctionClassField {
 export type ClassField = ValueClassField | FunctionClassField;
 
 export interface ClassExpression {
-    type: "expression.class";
+    type: "class";
     name: string;
     extends_: string[];
     fields: Record<string, ClassField>;
 }
 
 export interface FunctionExpression {
-    type: "expression.function";
+    type: "function";
     name?: string;
     args: Binding[];
     expression: Expression;
 }
 
 export interface NewExpression {
-    type: "expression.new";
+    type: "new";
     callee: Expression;
     args: Expression[];
 }
 
 export interface AwaitExpression {
-    type: "expression.await";
+    type: "await";
     expression: Expression;
 }
 
 export interface ObjectExpression {
-    type: "expression.object";
+    type: "object";
     elements: Record<string | number, Expression>;
 }
 
 export interface ArrayExpression {
-    type: "expression.array";
+    type: "array";
     elements: Expression[];
 }
 
-export interface TaggedExpression {
-    type: "expression.tagged";
+export interface TaggedTemplateExpression extends Omit<TemplateExpression, "type"> {
+    type: "template.tagged";
     callee: Expression;
-    strings: string[];
-    expressions: Expression[];
 }
 
 export interface BreakExpression {
-    type: "expression.break";
+    type: "break";
 }
 
 export interface ContinueExpression {
-    type: "expression.continue";
+    type: "continue";
 }
 
 export interface SwitchCase {
@@ -349,36 +370,45 @@ export interface SwitchCase {
 }
 
 export interface SwitchExpression {
-    type: "expression.switch";
+    type: "switch";
     condition: Expression;
     cases: SwitchCase[];
 }
 
-export interface ObjectBinding {
-    type: "binding.object";
-    entries: Record<string, Binding>;
+export interface ForInExpression {
+    type: "for.in";
+    mode: "var" | "let" | "const";
+    binding: Binding;
+    iterable: Expression;
+    expression: Expression;
 }
 
-export interface ArrayBinding {
-    type: "binding.array";
-    entries: Binding[];
+export interface ForOfExpression {
+    type: "for.of";
+    mode: "var" | "let" | "const";
+    binding: Binding;
+    iterable: Expression;
+    expression: Expression;
 }
 
-export interface CollectBinding {
-    type: "binding.collect";
-    name: string;
+export interface ForWildExpression {
+    type: "for.wild";
+    before?: Expression;
+    condition?: Expression;
+    after?: Expression;
+    expression: Expression;
 }
 
-export type Binding = string | ObjectBinding | ArrayBinding | CollectBinding;
+export type ForExpression = ForInExpression | ForOfExpression | ForWildExpression;
 
 export type Expression =
     | ExportExpression
     | ImportExpression
-    | ParenExpression
-    | SymbolLiteral
-    | StringLiteral
-    | NumberLiteral
-    | TemplateLiteral
+    | ParenthesisExpression
+    | SymbolExpression
+    | StringExpression
+    | NumberExpression
+    | TemplateExpression
     | ArrowFunctionExpression
     | BinaryExpression
     | UnaryExpression
@@ -398,7 +428,8 @@ export type Expression =
     | AwaitExpression
     | ObjectExpression
     | ArrayExpression
-    | TaggedExpression
+    | TaggedTemplateExpression
     | BreakExpression
     | ContinueExpression
-    | SwitchExpression;
+    | SwitchExpression
+    | ForExpression;

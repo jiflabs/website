@@ -31,5 +31,5 @@ export default function parseArrowFunctionExpression(context: Context): Expressi
         expression = parseExpression(context, false);
     }
 
-    return { type: "expression.function.arrow", args, expression };
+    return { type: "function.arrow", args, expression };
 }

@@ -7,7 +7,11 @@ import type { Context, Expression } from "../types.ts";
 export default function parseArrayExpression(context: Context): Expression {
     const elements: Expression[] = [];
 
+    const line = context.line;
+
+    context.line = false;
     expect(context, "other", { value: "[" });
+
     while (!at(context, "other", { value: "]" })) {
         elements.push(parseExpression(context, false));
 
@@ -15,7 +19,9 @@ export default function parseArrayExpression(context: Context): Expression {
             expect(context, "operator.comma", { value: "," });
         }
     }
+
+    context.line = line;
     expect(context, "other", { value: "]" });
 
-    return { type: "expression.array", elements };
+    return { type: "array", elements };
 }

@@ -7,5 +7,5 @@ export default function parseCollectBinding(context: Context): CollectBinding {
 
     const name = expect(context, "symbol").value;
 
-    return { type: "binding.collect", name };
+    return { type: "collect", name };
 }

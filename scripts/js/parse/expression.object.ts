@@ -17,17 +17,17 @@ export default function parseObjectExpression(context: Context): Expression {
         if (skip(context, "other", { value: "[" })) {
             const value = expect(context, "number").value;
             expect(context, "other", { value: "]" });
-            key = { type: "literal.number", value };
+            key = { type: "number", value };
         } else if (at(context, "string")) {
             const value = expect(context, "string").value;
-            key = { type: "literal.string", value };
+            key = { type: "string", value };
         } else {
             const value = expect(context, "symbol").value;
-            key = { type: "literal.symbol", value };
+            key = { type: "symbol", value };
         }
 
         let expression: Expression;
-        if (key.type === "literal.symbol" && !at(context, "other", { value: ":" })) {
+        if (key.type === "symbol" && !at(context, "other", { value: ":" })) {
             expression = { ...key };
         } else {
             expect(context, "other", { value: ":" });
@@ -44,5 +44,5 @@ export default function parseObjectExpression(context: Context): Expression {
     context.line = line;
     expect(context, "other", { value: "}" });
 
-    return { type: "expression.object", elements };
+    return { type: "object", elements };
 }

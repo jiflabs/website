@@ -1,4 +1,4 @@
-import { parseToken } from "./token.ts";
+import parseToken from "./parse/token.ts";
 
 import type { Context, Token, TokenData, TokenExtract, TokenType } from "./types.ts";
 

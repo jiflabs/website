@@ -29,7 +29,7 @@ export default function parseOperandExpression(context: Context): Expression {
         if (at(context, "template")) {
             const template = expect(context, "template");
             expression = {
-                type: "expression.tagged",
+                type: "template.tagged",
                 callee: expression,
                 strings: template.strings,
                 expressions: template.expressions,

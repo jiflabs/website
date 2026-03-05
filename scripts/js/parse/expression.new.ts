@@ -10,7 +10,7 @@ export default function parseNewExpression(context: Context): Expression {
     const call = parseOperandExpression(context);
 
     let callee: Expression, args: Expression[];
-    if (call.type === "expression.call") {
+    if (call.type === "call") {
         callee = call.callee;
         args = call.args;
     } else {
@@ -18,5 +18,5 @@ export default function parseNewExpression(context: Context): Expression {
         args = [];
     }
 
-    return { type: "expression.new", callee, args };
+    return { type: "new", callee, args };
 }

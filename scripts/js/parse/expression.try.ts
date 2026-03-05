@@ -24,5 +24,5 @@ export default function parseTryExpression(context: Context): TryExpression {
         finallyBlock = parseScopeExpression(context);
     }
 
-    return { type: "expression.try", expression, name, catchBlock, finallyBlock };
+    return { type: "try", expression, name, catchBlock, finallyBlock };
 }

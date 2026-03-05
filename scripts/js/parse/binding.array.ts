@@ -17,5 +17,5 @@ export default function parseArrayBinding(context: Context): ArrayBinding {
     }
     expect(context, "other", { value: "]" });
 
-    return { type: "binding.array", entries };
+    return { type: "array", entries };
 }

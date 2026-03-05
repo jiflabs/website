@@ -17,5 +17,5 @@ export default function parseScopeExpression(context: Context): ScopeExpression 
     }
     expect(context, "other", { value: "}" });
 
-    return { type: "expression.scope", expressions };
+    return { type: "scope", expressions };
 }

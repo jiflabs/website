@@ -1,15 +1,14 @@
-import { at, error, expect, get } from "../context.ts";
+import { at, error, get } from "../context.ts";
 
 import parseArrayExpression from "./expression.array.ts";
 import parseArrowFunctionExpression from "./expression.arrow-function.ts";
 import parseAwaitExpression from "./expression.await.ts";
 import parseNewExpression from "./expression.new.ts";
 import parseObjectExpression from "./expression.object.ts";
-import parseOperandExpression from "./expression.operand.ts";
 import parseParenExpression from "./expression.paren.ts";
+import parseUnaryExpression from "./expression.unary.ts";
 
 import type { Context, Expression } from "../types.ts";
-import parseUnaryExpression from "./expression.unary.ts";
 
 export default function parsePrimaryExpression(context: Context): Expression {
     if (at(context, "symbol", { value: "new" })) {
@@ -48,16 +47,16 @@ export default function parsePrimaryExpression(context: Context): Expression {
                 return parseArrowFunctionExpression(context);
             }
 
-            return { type: "literal.symbol", value: token.value };
+            return { type: "symbol", value: token.value };
 
         case "string":
-            return { type: "literal.string", value: token.value };
+            return { type: "string", value: token.value };
 
         case "number":
-            return { type: "literal.number", value: token.value };
+            return { type: "number", value: token.value };
 
         case "template":
-            return { type: "literal.template", strings: token.strings, expressions: token.expressions };
+            return { type: "template", strings: token.strings, expressions: token.expressions };
 
         default:
             error(context.text, snapshot.pos, `expect primary <---> found ${JSON.stringify(token)}`);

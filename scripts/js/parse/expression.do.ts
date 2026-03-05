@@ -19,5 +19,5 @@ export default function parseDoExpression(context: Context): DoExpression {
 
     expect(context, "line");
 
-    return { type: "expression.do", condition, expression };
+    return { type: "do", condition, expression };
 }

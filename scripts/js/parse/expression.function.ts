@@ -27,5 +27,5 @@ export default function parseFunctionExpression(context: Context, top: boolean):
 
     const expression = parseScopeExpression(context);
 
-    return { type: "expression.function", name, args, expression };
+    return { type: "function", name, args, expression };
 }
