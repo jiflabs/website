@@ -1,8 +1,8 @@
-import compressJS from "./js/compress.ts";
 import parseJS from "./js/parse.ts";
+import printJS from "./js/print.ts";
 
 export function minifyJS(text: string) {
-    return compressJS(parseJS(text));
+    return printJS(parseJS(text));
 }
 
 export function minifyCSS(text: string) {
