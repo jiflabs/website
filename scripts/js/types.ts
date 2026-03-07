@@ -273,10 +273,10 @@ export interface DoExpression {
 
 export interface TryExpression {
     type: "try";
-    expression: Expression;
+    try_: Expression;
     name?: string;
-    catchBlock: Expression;
-    finallyBlock?: Expression;
+    catch_: Expression;
+    finally_?: Expression;
 }
 
 export interface ReturnExpression {

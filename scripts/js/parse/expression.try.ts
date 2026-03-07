@@ -7,7 +7,7 @@ import type { Context, TryExpression } from "../types.ts";
 export default function parseTryExpression(context: Context): TryExpression {
     expect(context, "symbol", { value: "try" });
 
-    const expression = parseScopeExpression(context);
+    const try_ = parseScopeExpression(context);
 
     expect(context, "symbol", { value: "catch" });
 
@@ -17,12 +17,12 @@ export default function parseTryExpression(context: Context): TryExpression {
         expect(context, "other", { value: ")" });
     }
 
-    const catchBlock = parseScopeExpression(context);
+    const catch_ = parseScopeExpression(context);
 
-    let finallyBlock;
+    let finally_;
     if (skip(context, "symbol", { value: "finally" })) {
-        finallyBlock = parseScopeExpression(context);
+        finally_ = parseScopeExpression(context);
     }
 
-    return { type: "try", expression, name, catchBlock, finallyBlock };
+    return { type: "try", try_, name, catch_, finally_ };
 }
