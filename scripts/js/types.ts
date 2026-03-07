@@ -80,6 +80,18 @@ export interface OtherToken {
     value: string;
 }
 
+export interface LineCommentToken {
+    type: "comment.line";
+    value: string;
+}
+
+export interface BlockCommentToken {
+    type: "comment.block";
+    value: string;
+}
+
+export type CommentToken = LineCommentToken | BlockCommentToken;
+
 export type Token =
     | EmptyToken
     | LineToken
@@ -88,7 +100,9 @@ export type Token =
     | TemplateToken
     | NumberToken
     | OperatorToken
-    | OtherToken;
+    | OtherToken
+    | CommentToken;
+
 export type TokenType = Token["type"];
 export type TokenExtract<T extends TokenType> = Extract<Token, { type: T }>;
 export type TokenData<T extends TokenType> = Partial<Omit<TokenExtract<T>, "type">>;

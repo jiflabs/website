@@ -2,7 +2,7 @@ import parseJS from "./js/parse.ts";
 import printJS from "./js/print.ts";
 
 export function minifyJS(text: string) {
-    return printJS(parseJS(text));
+    return printJS(parseJS(text), true);
 }
 
 export function minifyCSS(text: string) {

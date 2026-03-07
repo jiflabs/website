@@ -263,17 +263,24 @@ export default function parseToken(text: string, pos: number, line: boolean): [T
 
             case "comment.line":
                 if (c !== "\n") {
+                    value += c;
                     pos++;
                     break;
                 }
+                // return [{ type: "comment.line", value }, pos];
+                value = "";
                 state = "none";
                 break;
 
             case "comment.block":
                 if (c !== "*" || text[pos + 1] !== "/") {
+                    value += c;
                     pos++;
                     break;
                 }
+                // return [{ type: "comment.block", value }, pos + 2];
+                pos += 2;
+                value = "";
                 state = "none";
                 break;
         }

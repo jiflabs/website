@@ -18,7 +18,7 @@ function space(depth: number) {
     return s;
 }
 
-function printBinding(binding: Binding, compress: boolean, depth: number): string {
+function printBinding(binding: Binding, compress: boolean): string {
     if (typeof binding === "string") {
         return binding;
     }
@@ -27,7 +27,7 @@ function printBinding(binding: Binding, compress: boolean, depth: number): strin
         case "object": {
             const entries = extract(binding.entries).map(([key, value]) => {
                 if (key !== value) {
-                    const val = printBinding(value, compress, depth);
+                    const val = printBinding(value, compress);
 
                     if (compress) {
                         return `${key}:${val}`;
@@ -51,7 +51,7 @@ function printBinding(binding: Binding, compress: boolean, depth: number): strin
         }
 
         case "array": {
-            const entries = binding.entries.map((entry) => printBinding(entry, compress, depth));
+            const entries = binding.entries.map((entry) => printBinding(entry, compress));
 
             if (compress) {
                 return `[${entries.join(",")}]`;
@@ -206,7 +206,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
                 return `${expression.args[0]} => ${exp}${end}`;
             }
 
-            const args = expression.args.map((arg) => printBinding(arg, compress, depth));
+            const args = expression.args.map((arg) => printBinding(arg, compress));
 
             if (compress) {
                 return `(${args.join(",")})=>${exp}${end}`;
@@ -282,8 +282,8 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
         }
 
         case "scope": {
-            const exps = expression.expressions.map((expression) =>
-                printExpression(expression, true, compress, depth + 1),
+            const exps = expression.expressions.map((expression, index, array) =>
+                printExpression(expression, index !== array.length - 1, compress, depth + 1),
             );
 
             if (compress) {
@@ -291,7 +291,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
             }
 
             if (exps.length) {
-                return `{\n${sp1}${exps.join(sp1)}${sp0}}${line ? "\n" : ""}`;
+                return `{\n${sp1}${exps.join(sp1)}\n${sp0}}${line ? "\n" : ""}`;
             }
 
             return `{}${line ? "\n" : ""}`;
@@ -299,7 +299,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
 
         case "variable": {
             const declarations = expression.declarations.map(({ binding, value }) => {
-                const first = printBinding(binding, compress, depth);
+                const first = printBinding(binding, compress);
 
                 if (value) {
                     const second = printExpression(value, false, compress, depth);
@@ -397,30 +397,32 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
         }
 
         case "class": {
-            const fields = extract(expression.fields).map(([key, value]) => {
+            const fields = extract(expression.fields).map(([key, value], index, array) => {
+                const last = index === array.length - 1;
+
                 const static_ = value.static_ ? "static " : "";
 
                 if (value.type === "value") {
                     if (value.expression) {
-                        const exp = printExpression(value.expression, false, compress, depth + 1);
+                        const exp = printExpression(value.expression, !last, compress, depth + 1);
 
                         if (compress) {
-                            return `${static_}${key}=${exp};`;
+                            return `${static_}${key}=${exp}`;
                         }
 
-                        return `${static_}${key} = ${exp}\n`;
+                        return `${static_}${key} = ${exp}`;
                     }
 
                     if (compress) {
-                        return `${static_}${key};`;
+                        return `${static_}${key}${last ? "" : ";"}`;
                     }
 
-                    return `${static_}${key}\n`;
+                    return `${static_}${key}${last ? "" : "\n"}`;
                 }
 
                 const async_ = value.async_ ? "async " : "";
-                const args = value.args.map((arg) => printBinding(arg, compress, depth + 1));
-                const exp = printExpression(value.expression, true, compress, depth + 1);
+                const args = value.args.map((arg) => printBinding(arg, compress));
+                const exp = printExpression(value.expression, !last, compress, depth + 1);
 
                 if (compress) {
                     return `${static_}${async_}${key}(${args.join(",")})${exp}`;
@@ -435,7 +437,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
                 }
 
                 if (fields.length) {
-                    return `class ${expression.name} extends ${expression.extends_.join(", ")} {\n${sp1}${fields.join(sp1)}${sp0}}${line ? "\n" : ""}`;
+                    return `class ${expression.name} extends ${expression.extends_.join(", ")} {\n${sp1}${fields.join(sp1)}\n${sp0}}${line ? "\n" : ""}`;
                 }
 
                 return `class ${expression.name} extends ${expression.extends_.join(", ")} {}${line ? "\n" : ""}`;
@@ -446,7 +448,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
             }
 
             if (fields.length) {
-                return `class ${expression.name} {\n${sp1}${fields.join(sp1)}${sp0}}${line ? "\n" : ""}`;
+                return `class ${expression.name} {\n${sp1}${fields.join(sp1)}\n${sp0}}${line ? "\n" : ""}`;
             }
 
             return `class ${expression.name} {}${line ? "\n" : ""}`;
@@ -508,7 +510,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
         }
 
         case "function": {
-            const args = expression.args.map((arg) => printBinding(arg, compress, depth));
+            const args = expression.args.map((arg) => printBinding(arg, compress));
             const exp = printExpression(expression.expression, true, compress, depth);
 
             if (compress) {
@@ -528,13 +530,16 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
 
         case "switch": {
             const condition = printExpression(expression.condition, false, compress, depth);
-            const cases = expression.cases.map((case_) => {
+            const cases = expression.cases.map((case_, index, array) => {
+                const lastcase = index === array.length - 1;
+
                 const match = case_.match
                     ? `case ${printExpression(case_.match, false, compress, depth + 1)}`
                     : "default";
-                const exps = case_.expressions.map((expression) =>
-                    printExpression(expression, true, compress, depth + 2),
-                );
+                const exps = case_.expressions.map((expression, index, array) => {
+                    const lastexp = lastcase && index === array.length - 1;
+                    return printExpression(expression, !lastexp, compress, depth + 2);
+                });
 
                 if (compress) {
                     return `${match}:${exps.join("")}`;
@@ -552,14 +557,14 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
             }
 
             if (cases.length) {
-                return `switch (${condition}) {\n${sp1}${cases.join(sp1)}${sp0}}${line ? "\n" : ""}`;
+                return `switch (${condition}) {\n${sp1}${cases.join(sp1)}\n${sp0}}${line ? "\n" : ""}`;
             }
 
             return `switch (${condition}) {}${line ? "\n" : ""}`;
         }
 
         case "for.in": {
-            const binding = printBinding(expression.binding, compress, depth);
+            const binding = printBinding(expression.binding, compress);
             const iterable = printExpression(expression.iterable, false, compress, depth);
             const exp = printExpression(expression.expression, line, compress, depth);
 
@@ -571,7 +576,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
         }
 
         case "for.of": {
-            const binding = printBinding(expression.binding, compress, depth);
+            const binding = printBinding(expression.binding, compress);
             const iterable = printExpression(expression.iterable, false, compress, depth);
             const exp = printExpression(expression.expression, line, compress, depth);
 
@@ -600,5 +605,7 @@ function printExpression(expression: Expression, line: boolean, compress: boolea
 }
 
 export default function print(expressions: Expression[], compress: boolean = false): string {
-    return expressions.map((expression) => printExpression(expression, true, compress, 0)).join("");
+    return expressions
+        .map((expression, index, array) => printExpression(expression, index !== array.length - 1, compress, 0))
+        .join("");
 }
