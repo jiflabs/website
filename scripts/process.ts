@@ -7,6 +7,7 @@ import { Renderer, parse } from "marked";
 
 import ts from "typescript";
 import yaml from "yaml";
+
 import { minifyCSS, minifyHTML, minifyJS } from "./minify.ts";
 
 interface ServerRedirect {
@@ -36,8 +37,7 @@ type Processor = (ref: FileReference, context?: Context) => FileReference[];
 
 const readFileSync = (path: fs.PathLike) => fs.readFileSync(path, "utf-8");
 
-const writeFileSync = (path: fs.PathLike, data: string | NodeJS.ArrayBufferView) =>
-    fs.writeFileSync(path, data, "utf-8");
+const writeFileSync = (path: fs.PathLike, data: string) => fs.writeFileSync(path, data, "utf-8");
 
 function createDefineDebugTransformer(debug: boolean): ts.TransformerFactory<ts.SourceFile> {
     return (context) => {
@@ -124,6 +124,13 @@ function createMinifyTransformer(): ts.TransformerFactory<ts.SourceFile> {
     };
 }
 
+function replaceGlobal(src: string, global: Record<string, string>) {
+    for (const key in global) {
+        src = src.replaceAll(`%global.${key}%`, global[key]);
+    }
+    return src;
+}
+
 function instantiateTemplate(
     templatePath: string,
     global: Record<string, string>,
@@ -134,9 +141,7 @@ function instantiateTemplate(
 
     template = template.replaceAll("%content%", content);
 
-    for (const key in global) {
-        template = template.replaceAll(`%global.${key}%`, global[key]);
-    }
+    template = replaceGlobal(template, global);
 
     for (const key in data) {
         template = template.replaceAll(`%data.${key}%`, data[key]);
@@ -172,13 +177,15 @@ const processCSS: Processor = (ref) => {
     }
 };
 
-const processHTML: Processor = (ref) => {
+const processHTML: Processor = (ref, context) => {
+    const content = replaceGlobal(ref.content, context?.global ?? {});
+
     try {
-        const minified = minifyHTML(ref.content);
+        const minified = minifyHTML(content);
         return [{ basename: ref.basename, content: minified }];
     } catch (error) {
         console.error("In file %s: %s", refPath(ref), error);
-        return [{ basename: ref.basename, content: ref.content }];
+        return [{ basename: ref.basename, content }];
     }
 };
 

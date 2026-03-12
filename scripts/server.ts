@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import http from "node:http";
+import http, { IncomingMessage } from "node:http";
 import http2 from "node:http2";
 import https from "node:https";
 import path from "node:path";
@@ -24,7 +24,7 @@ interface Redirect {
 
 interface Config {
     redirect?: Record<string, Redirect>;
-    global?: Record<string, unknown>;
+    global?: Record<string, string>;
 }
 
 interface ResolveConfig {
@@ -43,59 +43,90 @@ interface ServerConfig extends ResolveConfig {
     redirect?: Record<string, Redirect>;
 }
 
-class Server<M extends "http1" | "http2"> {
-    readonly mode: M;
-    readonly hostname;
-    readonly port;
+type ServerInternals =
+    | {
+          readonly mode: "http1";
+          readonly server: http.Server;
+          readonly socket: WebSocketServer;
+      }
+    | {
+          readonly mode: "http2";
+          readonly server: http2.Http2Server;
+      };
 
-    readonly server;
-    readonly secure;
+type RequestHandler = (request: Request) => Promise<Response>;
+type ConnectionHandler = (websocket: WebSocket, request: IncomingMessage) => void;
+
+class Server {
+    readonly hostname: string;
+    readonly port: number;
+    readonly secure: boolean;
+
+    readonly internals: ServerInternals;
+
+    requestHandler: RequestHandler | null;
+    connectionHandler: ConnectionHandler | null;
 
     constructor(
-        mode: M,
+        mode: "http1" | "http2",
         hostname: string = "0.0.0.0",
         port: number = 8080,
         cert?: string | Buffer<ArrayBufferLike>,
         key?: string | Buffer<ArrayBufferLike>,
     ) {
-        this.mode = mode;
         this.hostname = hostname;
         this.port = port;
 
+        let server, socket;
         switch (mode) {
             case "http1":
                 if (cert) {
-                    this.server = https.createServer({ cert, key });
+                    server = https.createServer({ cert, key });
                     this.secure = true;
                 } else {
-                    this.server = http.createServer();
+                    server = http.createServer();
                     this.secure = false;
                 }
+                socket = new WebSocketServer({ server: server });
+
+                this.internals = {
+                    mode,
+                    server,
+                    socket,
+                };
                 break;
 
             case "http2":
                 if (cert) {
-                    this.server = http2.createSecureServer({ cert, key });
+                    server = http2.createSecureServer({ cert, key });
                     this.secure = true;
                 } else {
-                    this.server = http2.createServer();
+                    server = http2.createServer();
                     this.secure = false;
                 }
+
+                this.internals = {
+                    mode,
+                    server,
+                };
                 break;
 
             default:
                 throw new Error("invalid server mode");
         }
 
-        this.server.listen(port, hostname, undefined, () => {
-            console.log(`Listening on ${this.secure ? "https" : "http"}://${formatHostname(hostname)}:${port}`);
+        server.listen(this.port, this.hostname, undefined, () => {
+            console.log(
+                `Listening on ${this.secure ? "https" : "http"}://${formatHostname(this.hostname)}:${this.port}`,
+            );
         });
-    }
 
-    handle(handler: (request: Request) => Promise<Response>) {
-        switch (this.mode) {
+        this.requestHandler = null;
+        this.connectionHandler = null;
+
+        switch (this.internals.mode) {
             case "http1":
-                (this.server as http.Server).on("request", (req, res) => {
+                this.internals.server.on("request", (req, res) => {
                     const method = req.method ?? "GET";
                     const path = req.url ?? "/";
                     const url = new URL(path, `${this.secure ? "https" : "http"}://${this.hostname}:${this.port}`);
@@ -117,31 +148,37 @@ class Server<M extends "http1" | "http2"> {
                         headers,
                     });
 
-                    handler(request).then(async (response) => {
-                        const headers: http.OutgoingHttpHeaders = {};
-                        for (const [key, val] of response.headers) {
-                            headers[key] = val;
-                        }
-
-                        res.writeHead(response.status, undefined, headers);
-
-                        if (response.body) {
-                            const reader = response.body.getReader();
-
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                res.write(Buffer.from(value));
+                    this.requestHandler
+                        && this.requestHandler(request).then(async (response) => {
+                            const headers: http.OutgoingHttpHeaders = {};
+                            for (const [key, val] of response.headers) {
+                                headers[key] = val;
                             }
-                        }
 
-                        res.end();
-                    });
+                            res.writeHead(response.status, undefined, headers);
+
+                            if (response.body) {
+                                const reader = response.body.getReader();
+
+                                while (true) {
+                                    const { done, value } = await reader.read();
+                                    if (done) break;
+                                    res.write(Buffer.from(value));
+                                }
+                            }
+
+                            res.end();
+                        });
                 });
+
+                this.internals.socket.on("connection", (websocket, request) => {
+                    this.connectionHandler && this.connectionHandler(websocket, request);
+                });
+
                 break;
 
             case "http2":
-                (this.server as http2.Http2Server).on("stream", (stream: http2.ServerHttp2Stream, hdrs) => {
+                this.internals.server.on("stream", (stream: http2.ServerHttp2Stream, hdrs) => {
                     const method = hdrs[":method"] ?? "GET";
                     const path = hdrs[":path"] ?? "/";
                     const url = new URL(path, `${this.secure ? "https" : "http"}://${this.hostname}:${this.port}`);
@@ -163,32 +200,41 @@ class Server<M extends "http1" | "http2"> {
                         headers,
                     });
 
-                    handler(request).then(async (response) => {
-                        const headers: http.OutgoingHttpHeaders = {};
-                        for (const [key, val] of response.headers) {
-                            headers[key] = val;
-                        }
-
-                        stream.respond({
-                            ":status": response.status,
-                            ...headers,
-                        });
-
-                        if (response.body) {
-                            const reader = response.body.getReader();
-
-                            while (true) {
-                                const { done, value } = await reader.read();
-                                if (done) break;
-                                stream.write(Buffer.from(value));
+                    this.requestHandler
+                        && this.requestHandler(request).then(async (response) => {
+                            const headers: http.OutgoingHttpHeaders = {};
+                            for (const [key, val] of response.headers) {
+                                headers[key] = val;
                             }
-                        }
 
-                        stream.end();
-                    });
+                            stream.respond({
+                                ":status": response.status,
+                                ...headers,
+                            });
+
+                            if (response.body) {
+                                const reader = response.body.getReader();
+
+                                while (true) {
+                                    const { done, value } = await reader.read();
+                                    if (done) break;
+                                    stream.write(Buffer.from(value));
+                                }
+                            }
+
+                            stream.end();
+                        });
                 });
                 break;
         }
+    }
+
+    onRequest(handler: RequestHandler) {
+        this.requestHandler = handler;
+    }
+
+    onConnection(handler: ConnectionHandler) {
+        this.connectionHandler = handler;
     }
 }
 
@@ -255,13 +301,11 @@ function resolvePath(config: ResolveConfig, pathname: string): [string, boolean]
 
 const formatHostname = (hostname: string) => (hostname.includes(":") ? `[${hostname}]` : hostname);
 
-function runHTTPServer(config: ServerConfig) {
-    const cert = config.certFile ? fs.readFileSync(config.certFile) : undefined;
-    const key = config.keyFile ? fs.readFileSync(config.keyFile) : undefined;
-
-    const server = new Server(config.mode, config.hostname, config.port, cert, key);
-
-    server.handle(async (request) => {
+function attachRequestHandler(
+    config: Omit<ServerConfig, "mode" | "keyFile" | "certFile" | "hostname" | "port">,
+    server: Server,
+) {
+    server.onRequest(async (request) => {
         const method = request.method;
         const url = new URL(request.url);
         const pathname = url.pathname;
@@ -309,18 +353,27 @@ function runHTTPServer(config: ServerConfig) {
             });
         }
     });
+}
+
+function runHTTPServer(config: ServerConfig) {
+    const cert = config.certFile ? fs.readFileSync(config.certFile) : undefined;
+    const key = config.keyFile ? fs.readFileSync(config.keyFile) : undefined;
+
+    const server = new Server(config.mode, config.hostname, config.port, cert, key);
+
+    attachRequestHandler(config, server);
 
     return server;
 }
 
-function handleFileChange(srcDir: string, dstDir: string, filename: string) {
-    if (filename === path.join(srcDir, "config.yaml")) {
-        processAll({ srcDir: srcDir, dstDir: dstDir, debug: true });
-        return true;
-    }
+function handleFileChange(srcDir: string, dstDir: string, config: Config, filename: string) {
+    processFile({ srcDir, dstDir, debug: true, global: config.global }, filename);
 
-    processFile({ srcDir: srcDir, dstDir: dstDir, debug: true }, filename);
-    return false;
+    return filename === path.join(srcDir, "config.yaml");
+}
+
+function readConfig(dir: string): Config {
+    return JSON.parse(fs.readFileSync(path.join(dir, "config.json"), "utf-8"));
 }
 
 function main(args: string[]) {
@@ -347,7 +400,7 @@ function main(args: string[]) {
     const contentDir = path.join(dstDir, "content");
 
     if (mode === "production") {
-        const config: Config = JSON.parse(fs.readFileSync(path.join(dstDir, "config.json"), "utf-8"));
+        const config = readConfig(dstDir);
 
         runHTTPServer({
             mode: "http2",
@@ -370,9 +423,9 @@ function main(args: string[]) {
             throw new Error(`Missing required param "src_dir".`);
         }
 
-        /**
-         * @type {Set<WebSocket>}
-         */
+        processFile({ srcDir, dstDir, debug: true }, path.join(srcDir, "config.yaml"));
+        let config = readConfig(dstDir);
+
         const clients: Set<WebSocket> = new Set();
 
         function broadcastReload() {
@@ -389,29 +442,27 @@ function main(args: string[]) {
             certFile,
             hostname,
             port,
-            redirect: {},
+            redirect: config.redirect,
             publicDir,
             pagesDir,
             contentDir,
         });
 
-        const wss = new WebSocketServer({ server: server.server as http.Server });
+        server.onConnection((websocket) => {
+            clients.add(websocket);
 
-        wss.on("connection", (ws) => {
-            clients.add(ws);
-
-            ws.on("message", (msg) => {
-                if (msg.toString() === "reload") {
+            websocket.on("message", (data, isBinary) => {
+                if (!isBinary && data.toString() === "reload") {
                     broadcastReload();
                 }
             });
 
-            ws.on("close", () => {
-                clients.delete(ws);
+            websocket.on("close", () => {
+                clients.delete(websocket);
             });
         });
 
-        processAll({ srcDir, dstDir, debug: true });
+        processAll({ srcDir, dstDir, debug: true, global: config.global });
 
         const watcher = chokidar.watch(srcDir, { ignoreInitial: true });
 
@@ -423,11 +474,24 @@ function main(args: string[]) {
             }
 
             try {
-                const full = handleFileChange(srcDir, dstDir, filename);
-                broadcastReload();
+                const full = handleFileChange(srcDir, dstDir, config, filename);
                 if (full) {
-                    console.log("TODO: config change, full reload");
+                    console.log("Server config changed, issuing full reload");
+
+                    config = readConfig(dstDir);
+                    processAll({ srcDir, dstDir, debug: true, global: config.global });
+
+                    attachRequestHandler(
+                        {
+                            redirect: config.redirect,
+                            publicDir,
+                            pagesDir,
+                            contentDir,
+                        },
+                        server,
+                    );
                 }
+                broadcastReload();
             } catch (err) {
                 console.error("Error while processing:", err);
             }
