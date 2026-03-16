@@ -1,18 +1,14 @@
-type Parsed<T extends Record<string, ["string" | "number" | "boolean", boolean]>> = {
+type Parsed<T extends Record<string, ["string" | "boolean", boolean]>> = {
     [K in keyof T]: T[K][0] extends "string"
         ? T[K][1] extends true
             ? string
             : string | undefined
-        : T[K][0] extends "number"
-          ? T[K][1] extends true
-              ? number
-              : number | undefined
-          : T[K][1] extends true
+        : T[K][1] extends true
             ? boolean
             : boolean | undefined;
 };
 
-export function parse<T extends Record<string, ["string" | "number" | "boolean", boolean]>>(
+export function parse<T extends Record<string, ["string" | "boolean", boolean]>>(
     argv: string[],
     template: T,
 ): Parsed<T> {
