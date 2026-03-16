@@ -1,17 +1,17 @@
 {
     "compilerOptions": {
         "target": "esnext",
-        "module": "esnext",
-        "moduleResolution": "bundler",
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
         "esModuleInterop": true,
         "isolatedModules": true,
         "sourceMap": true,
         "strict": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "allowImportingTsExtensions": false,
+        "allowImportingTsExtensions": true,
         "alwaysStrict": true,
         "noEmit": true
     },
-    "include": ["src"]
+    "include": ["."]
 }

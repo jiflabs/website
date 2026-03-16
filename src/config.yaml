@@ -1,1 +1,12 @@
-title: JIFLabs
+redirect:
+    "/home":
+        permanent: true
+        url: "/"
+    "/foo":
+        permanent: true
+        url: "/bar"
+    "/abc":
+        permanent: false
+        url: "/def"
+global:
+    title: JIFLabs
