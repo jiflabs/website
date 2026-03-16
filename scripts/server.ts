@@ -384,7 +384,7 @@ function main(args: string[]) {
         "--key-file": keyFile,
         "--cert-file": certFile,
         "--hostname": hostname,
-        "--port": port,
+        "--port": portString,
     } = parse(args, {
         "--mode": ["string", true],
         "--src-dir": ["string", false],
@@ -392,8 +392,10 @@ function main(args: string[]) {
         "--key-file": ["string", false],
         "--cert-file": ["string", false],
         "--hostname": ["string", false],
-        "--port": ["number", false],
+        "--port": ["string", false],
     } as const);
+
+    const port = portString ? parseInt(portString, 10) : undefined;
 
     const publicDir = path.join(dstDir, "public");
     const pagesDir = path.join(dstDir, "pages");
