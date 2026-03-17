@@ -59,9 +59,11 @@ type RequestHandler = (request: Request) => Promise<Response>;
 type ConnectionHandler = (websocket: WebSocket, request: IncomingMessage) => void;
 
 class Server {
+    readonly schema: string;
     readonly hostname: string;
     readonly port: number;
     readonly secure: boolean;
+    readonly base: string;
 
     readonly internals: ServerInternals;
 
@@ -122,8 +124,13 @@ class Server {
                 throw new Error("invalid server mode");
         }
 
+        this.schema = this.secure ? "https" : "http";
+
+        const formattedHostname = this.hostname.includes(":") ? `[${this.hostname}]` : this.hostname;
+        this.base = `${this.schema}://${formattedHostname}:${this.port}`;
+
         server.listen(this.port, this.hostname, undefined, () => {
-            console.log(`Listening on ${this.secure ? "https" : "http"}://${this.hostname}:${this.port}`);
+            console.log(`Listening on ${this.base}`);
         });
 
         this.requestHandler = null;
@@ -134,7 +141,7 @@ class Server {
                 this.internals.server.on("request", (req, res) => {
                     const method = req.method ?? "GET";
                     const path = req.url ?? "/";
-                    const url = new URL(path, `${this.secure ? "https" : "http"}://${this.hostname}:${this.port}`);
+                    const url = new URL(path, this.base);
 
                     const headers = new Headers();
                     for (const key in req.headers) {
@@ -186,7 +193,7 @@ class Server {
                 this.internals.server.on("stream", (stream: http2.ServerHttp2Stream, hdrs) => {
                     const method = hdrs[":method"] ?? "GET";
                     const path = hdrs[":path"] ?? "/";
-                    const url = new URL(path, `${this.secure ? "https" : "http"}://${this.hostname}:${this.port}`);
+                    const url = new URL(path, this.base);
 
                     const headers = new Headers();
                     for (const key in hdrs) {
