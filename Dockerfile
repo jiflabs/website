@@ -42,4 +42,4 @@ USER jiflabs
 
 EXPOSE 3000
 
-CMD ["node", "scripts/server.ts", "--mode=production", "--http=1.1", "--dst-dir=dst", "--hostname=[::]", "--port=3000"]
+CMD ["node", "scripts/server.ts", "--mode=production", "--http=1.1", "--dst-dir=dst", "--hostname=::", "--port=3000"]
