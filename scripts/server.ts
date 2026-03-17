@@ -35,6 +35,7 @@ interface ResolveConfig {
 
 interface ServerConfig extends ResolveConfig {
     mode: "http1" | "http2";
+    websocket: boolean;
     keyFile?: string;
     certFile?: string;
     hostname?: string;
@@ -47,7 +48,7 @@ type ServerInternals =
     | {
           readonly mode: "http1";
           readonly server: http.Server;
-          readonly socket: WebSocketServer;
+          readonly socket: WebSocketServer | null;
       }
     | {
           readonly mode: "http2";
@@ -69,6 +70,7 @@ class Server {
 
     constructor(
         mode: "http1" | "http2",
+        websocket: boolean,
         hostname: string = "0.0.0.0",
         port: number = 8080,
         cert?: string | Buffer<ArrayBufferLike>,
@@ -87,7 +89,12 @@ class Server {
                     server = http.createServer();
                     this.secure = false;
                 }
-                socket = new WebSocketServer({ server: server });
+
+                if (websocket) {
+                    socket = new WebSocketServer({ server: server });
+                } else {
+                    socket = null;
+                }
 
                 this.internals = {
                     mode,
@@ -171,7 +178,7 @@ class Server {
                         });
                 });
 
-                this.internals.socket.on("connection", (websocket, request) => {
+                this.internals.socket?.on("connection", (websocket, request) => {
                     this.connectionHandler && this.connectionHandler(websocket, request);
                 });
 
@@ -302,7 +309,7 @@ function resolvePath(config: ResolveConfig, pathname: string): [string, boolean]
 const formatHostname = (hostname: string) => (hostname.includes(":") ? `[${hostname}]` : hostname);
 
 function attachRequestHandler(
-    config: Omit<ServerConfig, "mode" | "keyFile" | "certFile" | "hostname" | "port">,
+    config: Omit<ServerConfig, "mode" | "websocket" | "keyFile" | "certFile" | "hostname" | "port">,
     server: Server,
 ) {
     server.onRequest(async (request) => {
@@ -359,7 +366,7 @@ function runHTTPServer(config: ServerConfig) {
     const cert = config.certFile ? fs.readFileSync(config.certFile) : undefined;
     const key = config.keyFile ? fs.readFileSync(config.keyFile) : undefined;
 
-    const server = new Server(config.mode, config.hostname, config.port, cert, key);
+    const server = new Server(config.mode, config.websocket, config.hostname, config.port, cert, key);
 
     attachRequestHandler(config, server);
 
@@ -384,7 +391,7 @@ function main(args: string[]) {
         "--key-file": keyFile,
         "--cert-file": certFile,
         "--hostname": hostname,
-        "--port": portString,
+        "--port": port,
         "--http": httpVersion,
     } = parse(args, {
         "--mode": ["string", true],
@@ -393,22 +400,18 @@ function main(args: string[]) {
         "--key-file": ["string", false],
         "--cert-file": ["string", false],
         "--hostname": ["string", false],
-        "--port": ["string", false],
+        "--port": ["number", false],
         "--http": ["string", false],
     } as const);
 
-    const port = portString ? parseInt(portString, 10) : undefined;
-
-    let serverMode;
+    let serverMode: "http1" | "http2";
     switch (httpVersion) {
-        case "1.1":
-            serverMode = "http1";
-            break;
         case "2":
             serverMode = "http2";
             break;
+        case "1.1":
         default:
-            serverMode = null;
+            serverMode = "http1";
             break;
     }
 
@@ -420,7 +423,8 @@ function main(args: string[]) {
         const config = readConfig(dstDir);
 
         runHTTPServer({
-            mode: serverMode ?? "http2",
+            mode: serverMode,
+            websocket: false,
             keyFile,
             certFile,
             hostname,
@@ -453,8 +457,13 @@ function main(args: string[]) {
             }
         }
 
+        if (serverMode !== "http1") {
+            console.warn("development server does only support http/1.1");
+        }
+
         const server = runHTTPServer({
-            mode: serverMode ?? "http1",
+            mode: "http1",
+            websocket: true,
             keyFile,
             certFile,
             hostname,
