@@ -123,9 +123,7 @@ class Server {
         }
 
         server.listen(this.port, this.hostname, undefined, () => {
-            console.log(
-                `Listening on ${this.secure ? "https" : "http"}://${formatHostname(this.hostname)}:${this.port}`,
-            );
+            console.log(`Listening on ${this.secure ? "https" : "http"}://${this.hostname}:${this.port}`);
         });
 
         this.requestHandler = null;
@@ -305,8 +303,6 @@ function resolvePath(config: ResolveConfig, pathname: string): [string, boolean]
 
     return [null, false];
 }
-
-const formatHostname = (hostname: string) => (hostname.includes(":") ? `[${hostname}]` : hostname);
 
 function attachRequestHandler(
     config: Omit<ServerConfig, "mode" | "websocket" | "keyFile" | "certFile" | "hostname" | "port">,
