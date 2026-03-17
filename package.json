@@ -15,10 +15,10 @@
     "type": "module",
     "scripts": {
         "build": "node scripts/build.ts --src-dir=src --dst-dir=dst",
-        "start": "node scripts/server.ts --mode=production --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
-        "start1": "node scripts/server.ts --mode=production --dst-dir=dst",
-        "dev": "node scripts/server.ts --mode=development --src-dir=src --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
-        "dev1": "node scripts/server.ts --mode=development --src-dir=src --dst-dir=dst",
+        "start-sec": "node scripts/server.ts --mode=production --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
+        "start": "node scripts/server.ts --mode=production --dst-dir=dst",
+        "dev-sec": "node scripts/server.ts --mode=development --src-dir=src --dst-dir=dst --key-file=.local/local-key.pem --cert-file=.local/local-cert.pem",
+        "dev": "node scripts/server.ts --mode=development --src-dir=src --dst-dir=dst",
         "format": "npx prettier . --write"
     },
     "engines": {
