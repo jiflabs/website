@@ -385,6 +385,7 @@ function main(args: string[]) {
         "--cert-file": certFile,
         "--hostname": hostname,
         "--port": portString,
+        "--http": httpVersion,
     } = parse(args, {
         "--mode": ["string", true],
         "--src-dir": ["string", false],
@@ -393,9 +394,23 @@ function main(args: string[]) {
         "--cert-file": ["string", false],
         "--hostname": ["string", false],
         "--port": ["string", false],
+        "--http": ["string", false],
     } as const);
 
     const port = portString ? parseInt(portString, 10) : undefined;
+
+    let serverMode;
+    switch (httpVersion) {
+        case "1.1":
+            serverMode = "http1";
+            break;
+        case "2":
+            serverMode = "http2";
+            break;
+        default:
+            serverMode = null;
+            break;
+    }
 
     const publicDir = path.join(dstDir, "public");
     const pagesDir = path.join(dstDir, "pages");
@@ -405,7 +420,7 @@ function main(args: string[]) {
         const config = readConfig(dstDir);
 
         runHTTPServer({
-            mode: "http2",
+            mode: serverMode ?? "http2",
             keyFile,
             certFile,
             hostname,
@@ -439,7 +454,7 @@ function main(args: string[]) {
         }
 
         const server = runHTTPServer({
-            mode: "http1",
+            mode: serverMode ?? "http1",
             keyFile,
             certFile,
             hostname,
