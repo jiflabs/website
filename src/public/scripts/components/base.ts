@@ -1,15 +1,19 @@
 export abstract class BaseElement extends HTMLElement {
-    private readonly root: ShadowRoot;
+    private readonly __root: ShadowRoot;
 
     constructor() {
         super();
 
-        this.root = this.attachShadow({
+        this.__root = this.attachShadow({
             mode: "open",
             clonable: false,
             delegatesFocus: false,
             serializable: false,
         });
+    }
+
+    get root() {
+        return this.__root;
     }
 
     connectedCallback() {
@@ -27,7 +31,7 @@ export abstract class BaseElement extends HTMLElement {
     async invalidate() {
         const template = await this.template();
         const styles = await this.styles();
-        render(template, styles, this.root);
+        render(template, styles, this.__root);
     }
 
     async template(): Promise<Template<"html"> | null> {

@@ -25,6 +25,7 @@
         "node": "~25"
     },
     "dependencies": {
+        "asciinema-player": "^3.15.1",
         "chokidar": "^5.0.0",
         "gray-matter": "^4.0.3",
         "highlight.js": "^11.11.1",
