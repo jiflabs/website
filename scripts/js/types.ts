@@ -197,10 +197,7 @@ export interface SideEffectImportExpression {
 }
 
 export type ImportExpression =
-    | NamedImportExpression
-    | DefaultImportExpression
-    | NamespaceImportExpression
-    | SideEffectImportExpression;
+    NamedImportExpression | DefaultImportExpression | NamespaceImportExpression | SideEffectImportExpression;
 
 export interface SymbolExpression {
     type: "symbol";

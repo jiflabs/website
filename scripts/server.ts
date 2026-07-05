@@ -297,7 +297,10 @@ function resolvePath(config: ResolveConfig, pathname: string): [string, boolean]
     }
 
     const extIndex = normalized.lastIndexOf(".");
-    const relNoExt = normalized.slice(0, extIndex < 0 ? undefined : extIndex);
+    const relNoExt = normalized.slice(
+        0,
+        extIndex < 0 ? undefined : normalized[extIndex - 1] === "/" ? undefined : extIndex,
+    );
 
     if (relNoExt.startsWith(CONTENT_PREFIX)) {
         const rel = relNoExt.slice(CONTENT_PREFIX.length);
