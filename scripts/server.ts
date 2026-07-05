@@ -5,6 +5,7 @@ import http, { IncomingMessage } from "node:http";
 import http2 from "node:http2";
 import https from "node:https";
 import path from "node:path";
+import { styleText } from "node:util";
 
 import { WebSocket, WebSocketServer } from "ws";
 
@@ -242,7 +243,31 @@ class Server {
     }
 
     onRequest(handler: RequestHandler) {
-        this.requestHandler = handler;
+        this.requestHandler = async (request) => {
+            const response = await handler(request);
+
+            const method = request.method;
+            const url = new URL(request.url);
+            const pathname = url.pathname;
+            const status = response.status;
+
+            let statusText;
+            if (100 <= status && status <= 199) {
+                statusText = styleText(["bold", "blueBright"], `${status}`);
+            } else if (200 <= status && status <= 299) {
+                statusText = styleText(["bold", "green"], `${status}`);
+            } else if (300 <= status && status <= 399) {
+                statusText = styleText(["bold", "blue"], `${status}`);
+            } else if (400 <= status && status <= 499) {
+                statusText = styleText(["bold", "red"], `${status}`);
+            } else if (500 <= status && status <= 599) {
+                statusText = styleText(["bold", "redBright"], `${status}`);
+            }
+
+            console.log(`${statusText} ${method} ${pathname}`);
+
+            return response;
+        };
     }
 
     onConnection(handler: ConnectionHandler) {
@@ -316,11 +341,8 @@ function attachRequestHandler(
     server: Server,
 ) {
     server.onRequest(async (request) => {
-        const method = request.method;
         const url = new URL(request.url);
         const pathname = url.pathname;
-
-        console.log("%s %s", method, pathname);
 
         if (config.redirect && pathname in config.redirect) {
             const redirect = config.redirect[pathname];

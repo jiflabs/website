@@ -124,28 +124,18 @@ function createMinifyTransformer(): ts.TransformerFactory<ts.SourceFile> {
     };
 }
 
-function replaceGlobal(src: string, global: Record<string, string>) {
-    for (const key in global) {
-        src = src.replaceAll(`%global.${key}%`, global[key]);
+function replaceNS(src: string, data: Record<string, string>, ns: string | null = null) {
+    for (const key in data) {
+        src = src.replaceAll(ns !== null ? `%${ns}.${key}%` : `%${key}%`, data[key]);
     }
     return src;
 }
 
-function instantiateTemplate(
-    templatePath: string,
-    global: Record<string, string>,
-    data: Record<string, string>,
-    content: string,
-) {
+function instantiateTemplate(templatePath: string, global: Record<string, string>, data: Record<string, string>) {
     let template = readFileSync(templatePath);
 
-    template = template.replaceAll("%content%", content);
-
-    template = replaceGlobal(template, global);
-
-    for (const key in data) {
-        template = template.replaceAll(`%data.${key}%`, data[key]);
-    }
+    template = replaceNS(template, global);
+    template = replaceNS(template, data, "data");
 
     return template;
 }
@@ -178,7 +168,7 @@ const processCSS: Processor = (ref) => {
 };
 
 const processHTML: Processor = (ref, context) => {
-    const content = replaceGlobal(ref.content, context?.global ?? {});
+    const content = replaceNS(ref.content, context?.global ?? {});
 
     try {
         const minified = minifyHTML(content);
@@ -254,7 +244,9 @@ const processMD: Processor = (ref, context) => {
 
     const templatePath = path.join(context?.srcDir ?? "", "templates", `${data.template}.html`);
 
-    const output = instantiateTemplate(templatePath, context?.global ?? {}, data, html);
+    data["content"] = html;
+
+    const output = instantiateTemplate(templatePath, context?.global ?? {}, data);
     const outputBasename = ref.basename.replace(/\.md$/, ".html");
 
     return PROC[".html"]({ basename: outputBasename, content: output }, context);
